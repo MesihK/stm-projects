@@ -1,24 +1,3 @@
-##
-## This file is part of the libopencm3 project.
-##
-## Copyright (C) 2009 Uwe Hermann <uwe@hermann-uwe.de>
-## Copyright (C) 2010 Piotr Esden-Tempski <piotr@esden.net>
-## Copyright (C) 2013 Frantisek Burian <BuFran@seznam.cz>
-##
-## This library is free software: you can redistribute it and/or modify
-## it under the terms of the GNU Lesser General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-##
-## This library is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-## GNU Lesser General Public License for more details.
-##
-## You should have received a copy of the GNU Lesser General Public License
-## along with this library.  If not, see <http://www.gnu.org/licenses/>.
-##
-
 # Be silent per default, but 'make V=1' will show all compiler calls.
 ifneq ($(V),1)
 Q		:= @
@@ -212,6 +191,11 @@ clean:
 	@#printf "  CLEAN\n"
 	$(Q)$(RM) *.o *.d *.elf *.bin *.hex *.srec *.list *.map generated.* ${OBJS} ${OBJS:%.o:%.d}
 
+%.flash: 
+	@printf "  FLASH  $<\n"
+	$(Q)$(OBJCOPY) -Obinary $(*).elf $(*).bin
+	$(STFLASH) write $(*).bin 0x8000000
+
 stylecheck: $(STYLECHECKFILES:=.stylecheck)
 styleclean: $(STYLECHECKFILES:=.styleclean)
 
@@ -231,32 +215,6 @@ styleclean: $(STYLECHECKFILES:=.styleclean)
 %.stlink-flash: %.bin
 	@printf "  FLASH  $<\n"
 	$(STFLASH) write $(*).bin 0x8000000
-
-ifeq ($(BMP_PORT),)
-ifeq ($(OOCD_FILE),)
-%.flash: %.elf
-	@printf "  FLASH   $<\n"
-	(echo "halt; program $(realpath $(*).elf) verify reset" | nc -4 localhost 4444 2>/dev/null) || \
-		$(OOCD) -f interface/$(OOCD_INTERFACE).cfg \
-		-f target/$(OOCD_TARGET).cfg \
-		-c "program $(*).elf verify reset exit" \
-		$(NULL)
-else
-%.flash: %.elf
-	@printf "  FLASH   $<\n"
-	(echo "halt; program $(realpath $(*).elf) verify reset" | nc -4 localhost 4444 2>/dev/null) || \
-		$(OOCD) -f $(OOCD_FILE) \
-		-c "program $(*).elf verify reset exit" \
-		$(NULL)
-endif
-else
-%.flash: %.elf
-	@printf "  GDB   $(*).elf (flash)\n"
-	$(GDB) --batch \
-		   -ex 'target extended-remote $(BMP_PORT)' \
-		   -x $(EXAMPLES_SCRIPT_DIR)/black_magic_probe_flash.scr \
-		   $(*).elf
-endif
 
 .PHONY: images clean stylecheck styleclean elf bin hex srec list
 

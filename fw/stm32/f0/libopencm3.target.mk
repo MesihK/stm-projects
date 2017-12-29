@@ -25,20 +25,5 @@ FP_FLAGS	?= -msoft-float
 ARCH_FLAGS	= -mthumb -mcpu=cortex-m0 $(FP_FLAGS)
 
 ################################################################################
-# OpenOCD specific variables
 
-OOCD		?= openocd
-OOCD_INTERFACE	?= stlink-v2-1
-OOCD_TARGET	?= stm32f0x
-
-################################################################################
-# Black Magic Probe specific variables
-# Set the BMP_PORT to a serial port and then BMP is used for flashing
-BMP_PORT	?=
-
-################################################################################
-# texane/stlink specific variables
-#STLINK_PORT	?= :4242
-
-
-include ../../libopencm3.rules.mk
+include ~/workspace/stm/fw/libopencm3.rules.mk
