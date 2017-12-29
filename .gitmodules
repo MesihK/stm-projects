@@ -1,0 +1,9 @@
+[submodule "lib/microrl"]
+	path = lib/microrl
+	url = https://github.com/Helius/microrl.git
+[submodule "lib/tiny-regex-c"]
+	path = lib/tiny-regex-c
+	url = https://github.com/kokke/tiny-regex-c.git
+[submodule "lib/libopencm3"]
+	path = lib/libopencm3
+	url = https://github.com/libopencm3/libopencm3.git
