@@ -1,0 +1,34 @@
+[
+    {
+        "arguments": [
+            "cc", 
+            "-c", 
+            "-Os", 
+            "-std=c99", 
+            "-ggdb3", 
+            "-mcpu=cortex-m0", 
+            "-mthumb", 
+            "-msoft-float", 
+            "-Wextra", 
+            "-Wshadow", 
+            "-Wimplicit-function-declaration", 
+            "-Wredundant-decls", 
+            "-Wmissing-prototypes", 
+            "-Wstrict-prototypes", 
+            "-fno-common", 
+            "-ffunction-sections", 
+            "-fdata-sections", 
+            "-Wall", 
+            "-Wundef", 
+            "-DSTM32F0", 
+            "-DSTM32F051R8T6", 
+            "-DSTM32F0", 
+            "-I../../../lib/libopencm3/include", 
+            "-o", 
+            "usart.o", 
+            "usart.c"
+        ], 
+        "directory": "/home/mesih/workspace/stm/sw/stm32f0ex/usart", 
+        "file": "usart.c"
+    }
+]
