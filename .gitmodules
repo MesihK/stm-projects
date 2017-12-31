@@ -7,3 +7,6 @@
 [submodule "lib/libopencm3"]
 	path = lib/libopencm3
 	url = https://github.com/libopencm3/libopencm3.git
+[submodule "lib/picoc"]
+	path = lib/picoc
+	url = https://github.com/jpoirier/picoc.git
