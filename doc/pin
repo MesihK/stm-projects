@@ -1,0 +1,20 @@
+spi max 18mbit/sec
+pa4 spi1_nss
+pa5 spi1_sck
+pa6 spi1_miso
+pa7 spi1_mosi
+
+usart max 4.5 mbit/s
+pa8     usart1_ck
+pa9     usart1_tx
+pa10    usart1_rx
+pa11    usart1_cts
+pa12    usart1_rts
+
+USB
+pa11 D-
+pa12 D+
+
+pc13    led
+
+

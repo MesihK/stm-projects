@@ -1,0 +1,23 @@
+[
+    {
+        "arguments": [
+            "cc", 
+            "-c", 
+            "-std=c99", 
+            "-O3", 
+            "-I.", 
+            "-I../../../lib/microrl/src/", 
+            "-DSTM32F051R8T6", 
+            "-DSTM32F0", 
+            "-I../../../lib/libopencm3/include", 
+            "-mcpu=cortex-m0", 
+            "-mthumb", 
+            "-msoft-float", 
+            "-o", 
+            "rl.o", 
+            "rl.c"
+        ], 
+        "directory": "/home/mesih/workspace/stm/sw/stm32f0ex/microrl", 
+        "file": "rl.c"
+    }
+]

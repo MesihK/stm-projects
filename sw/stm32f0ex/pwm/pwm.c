@@ -24,6 +24,7 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/timer.h>
+#include  "dsin.h"
 
 #define PORT_LED GPIOC
 #define PIN_LED GPIO8
@@ -57,10 +58,14 @@ static void gpio_setup(void)
 {
 	/* Enable GPIOB clock. */
 	rcc_periph_clock_enable(RCC_GPIOC);
+	rcc_periph_clock_enable(RCC_GPIOA);
 
 
 	/* Set GPIO6 (in GPIO port B) to 'output push-pull'. */
 	gpio_mode_setup(PORT_LED, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_LED);
+
+    //debug pins
+	gpio_mode_setup(GPIOA, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO0 | GPIO1 | GPIO2 | GPIO3 | GPIO4 | GPIO5 | GPIO6 );
 }
 
 static void timer_setup(void)
@@ -81,13 +86,15 @@ static void timer_setup(void)
 	gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO0 | GPIO1 );
 	gpio_set_af(GPIOA, GPIO_AF2, GPIO7 | GPIO8 | GPIO9 | GPIO10);
 	gpio_set_af(GPIOB, GPIO_AF2, GPIO0 | GPIO1 );
+	nvic_enable_irq(NVIC_TIM1_BRK_UP_TRG_COM_IRQ);
+	nvic_enable_irq(NVIC_TIM1_CC_IRQ);
 
     timer_set_mode(TIM1, TIM_CR1_CKD_CK_INT, TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
 	timer_set_prescaler(TIM1, 48-1);
 	timer_set_repetition_counter(TIM1, 0);
 	timer_enable_preload(TIM1);
 	timer_continuous_mode(TIM1);
-	timer_set_period(TIM1, 100-1); //100khz
+	timer_set_period(TIM1, 100-1); //10khz
 
 	timer_set_deadtime(TIM1, 40);
 	timer_set_enabled_off_state_in_idle_mode(TIM1);
@@ -218,7 +225,88 @@ static void timer_setup(void)
 	timer_enable_counter(TIM1);
 
 	/* Enable commutation interrupt. */
-	//timer_enable_irq(TIM1, TIM_DIER_COMIE);
+	timer_enable_irq(TIM1, TIM_DIER_COMIE);
+	timer_enable_irq(TIM1, TIM_DIER_CC1IE);
+	timer_enable_irq(TIM1, TIM_DIER_CC2IE);
+	timer_enable_irq(TIM1, TIM_DIER_CC3IE);
+	timer_enable_irq(TIM1, TIM_DIER_UIE);
+}
+void tim1_brk_up_trg_com_isr(void)
+{
+    if(timer_get_flag(TIM1, TIM_SR_COMIF)){
+		gpio_set(GPIOA, GPIO0);	
+        timer_clear_flag(TIM1, TIM_SR_COMIF);
+		gpio_clear(GPIOA, GPIO0);	
+    }
+    if(timer_get_flag(TIM1, TIM_SR_UIF)){
+		gpio_set(GPIOA, GPIO1);	
+        timer_clear_flag(TIM1, TIM_SR_UIF);
+		gpio_clear(GPIOA, GPIO1);	
+    }
+}
+void tim1_cc_isr(void)
+{
+    if(timer_get_flag(TIM1, TIM_SR_CC1IF)){
+		gpio_set(GPIOA, GPIO2);	
+        timer_clear_flag(TIM1, TIM_SR_CC1IF);
+		gpio_clear(GPIOA, GPIO2);	
+    }
+    if(timer_get_flag(TIM1, TIM_SR_CC2IF)){
+		gpio_set(GPIOA, GPIO3);	
+        timer_clear_flag(TIM1, TIM_SR_CC2IF);
+		gpio_clear(GPIOA, GPIO3);	
+    }
+    if(timer_get_flag(TIM1, TIM_SR_CC3IF)){
+		gpio_set(GPIOA, GPIO4);	
+        timer_clear_flag(TIM1, TIM_SR_CC3IF);
+		gpio_clear(GPIOA, GPIO4);	
+    }
+}
+
+void set_pwm_angle(uint16_t angle, uint16_t amp)
+{
+    int16_t U = amp*_sin(angle);
+    int16_t V = amp*_sin(angle+120);
+    int16_t W = amp*_sin(angle+240);
+    int16_t u = 0, v = 0, w = 0;
+
+    if (angle <= 60 ) {
+        u = 0;
+        v = u + U;
+        w = u - W;
+    }
+    else if (angle <= 120 ) {
+        v = 100;
+        u = v - U;
+        w = V + v;
+    }
+    else if (angle <= 180 ) {
+        w = 0;
+        u = W + w;
+        v = w - V;
+    }
+    else if (angle <= 240 ) {
+        u = 100;
+        v = u + U;
+        w = u - W;
+    }
+    else if (angle <= 300 ) {
+        v = 0;
+        u = v - U;
+        w = V + v;
+    }
+    else if (angle <= 360 ) {
+        w = 100;
+        u = W + w;
+        v = w - V;
+    }
+
+	timer_set_oc_value(TIM1, TIM_OC1, u);
+	timer_set_oc_value(TIM1, TIM_OC2, v);
+	timer_set_oc_value(TIM1, TIM_OC3, w);
+    timer_generate_event(TIM1, TIM_EGR_COMG); // sanirim ihtiyac yok
+    //com eventi baska bir timer ile cagrilip bu timer da is yapilmasini sagliyor
+    //bizim buna ihtiyacimiz yok cunku sabit v/f kontrolu yapacagiz
 }
 
 int main(void)
@@ -228,10 +316,15 @@ int main(void)
 	gpio_setup();
     timer_setup();
 
-	/* Blink the LED (PC8) on the board. */
+    uint16_t angle = 0;
 	while (1) {
 		gpio_toggle(PORT_LED, PIN_LED);	/* LED on/off */
-        msleep(500);
+		gpio_set(GPIOA, GPIO5);	
+        set_pwm_angle(angle, 1);
+		gpio_clear(GPIOA, GPIO5);	
+        angle = angle + 1;
+        if(angle > 360) angle = angle - 360;
+        msleep(1); //360 * 1 ms = .36ms T = ~2.8H
 
 	}
 

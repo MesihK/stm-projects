@@ -26,4 +26,4 @@ ARCH_FLAGS	= -mthumb -mcpu=cortex-m3 $(FP_FLAGS) -mfix-cortex-m3-ldrd
 
 ################################################################################
 
-include ~/workspace/stm/fw/libopencm3.rules.mk
+include ~/workspace/suav_stm/fw/libopencm3.rules.mk

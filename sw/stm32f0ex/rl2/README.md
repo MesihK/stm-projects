@@ -10,3 +10,9 @@ The sending is done in a blocking way.
 | Port  | Function      | Description                       |
 | ----- | ------------- | --------------------------------- |
 | `PA9` | `(USART1_TX)`	| TTL serial output `(38400,8,N,1)` |
+
+
+sudo picocom -b 9600 --omap=crcrlf /dev/ttyUSB0
+
+microrl/src/config.h
+#define _ENDL_CRLF

@@ -30,4 +30,4 @@ endif
 
 ################################################################################
 
-include ~/workspace/stm/fw/libopencm3.rules.mk
+include ~/workspace/suav_stm/fw/libopencm3.rules.mk
