@@ -56,8 +56,8 @@ static void msleep(uint32_t delay)
 
 static void systick_setup(void)
 {
-    systick_set_reload(72000);
-    systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
+    systick_set_reload(72000/8-1);
+    systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
     systick_counter_enable();
     systick_interrupt_enable();
 }
@@ -116,16 +116,16 @@ int main(void)
 	clock_setup();
     systick_setup();
 	gpio_setup();
-	usart_setup();
+	//usart_setup();
 
-	microrl_init (prl, print);
-	microrl_set_execute_callback (prl, execute);
-	microrl_set_complete_callback (prl, complet);
-	microrl_set_sigint_callback (prl, sigint);
+	//microrl_init (prl, print);
+	//microrl_set_execute_callback (prl, execute);
+	//microrl_set_complete_callback (prl, complet);
+	//microrl_set_sigint_callback (prl, sigint);
 
     while(1)
     {
-        //gpio_toggle(GPIOC, GPIO8);	/* LED on/off */
+        gpio_toggle(GPIOC, GPIO13);	/* LED on/off */
         msleep(500);
     }
 }
