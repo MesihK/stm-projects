@@ -7,6 +7,7 @@
 #include <stdio.h>
 //#include "syscalls.h"
 #include "uart.h"
+#include "spi.h"
 
 volatile uint32_t system_millis;
 
@@ -51,11 +52,14 @@ int main(void)
 	clock_setup();
     systick_setup();
 	gpio_setup();
+	spi_setup();
     usart_setup(57600);
 
     while(1)
     {
         printf("Merhaba:%d \n", i++);
+		spi_send_data((uint8_t) i);
+		//rx_value = spi_read(SPI1);
         gpio_toggle(GPIOC, GPIO13);	/* LED on/off */
         msleep(500);
     }

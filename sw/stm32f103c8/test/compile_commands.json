@@ -86,11 +86,11 @@
             "-mthumb", 
             "-msoft-float", 
             "-o", 
-            "syscalls.o", 
-            "syscalls.c"
+            "ring.o", 
+            "ring.c"
         ], 
         "directory": "/home/mesih/workspace/suav_stm/sw/stm32f103c8/test", 
-        "file": "syscalls.c"
+        "file": "ring.c"
     }, 
     {
         "arguments": [
@@ -117,10 +117,10 @@
             "-mthumb", 
             "-msoft-float", 
             "-o", 
-            "ring.o", 
-            "ring.c"
+            "spi.o", 
+            "spi.c"
         ], 
         "directory": "/home/mesih/workspace/suav_stm/sw/stm32f103c8/test", 
-        "file": "ring.c"
+        "file": "spi.c"
     }
 ]
