@@ -3,7 +3,6 @@ OPENCM3_DIR     = ../../../lib/libopencm3
 BINARY          = test
 
 SRCS            += main.c
-SRCS            += syscalls.c
 SRCS            += uart.c
 SRCS            += ring.c
 SRCS            += ../../../lib/microrl/src/microrl.c
@@ -16,12 +15,9 @@ ARCHFLAGS 		= -mthumb -mcpu=cortex-m3 -msoft-float
 CFLAGS          += -std=c99 -O3  $(INCLUDES)
 CFLAGS 			+= -Wall -Wextra -Wimplicit-function-declaration -Wredundant-decls -Wstrict-prototypes -Wundef -Wshadow -MD
 CFLAGS			+= -fno-common -ffunction-sections -fdata-sections
-LDFLAGS         += -static -nostartfiles #-mfix-cortex-m3-ldrd  
-LDLIBS          += -Wl,--start-group -lc -lgcc  -Wl,--end-group 
-LDFLAGS 		+= -Wl,--gc-sections 
+LDFLAGS         += -static -nostartfiles -mfix-cortex-m3-ldrd  
 LDFLAGS			+= -Wl,-Map=$(*).map -Wl,--cref
-#LDFLAGS 		+= -Wl,-Map=usart_irq_printf.map -Wl,--cref -Wl,--gc-sections
-#LDLIBS          += -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group 
+LDLIBS          += -Wl,--start-group -lc -lgcc -lnosys  -Wl,--end-group  -Wl,--gc-sections 
 
 include $(OPENCM3_DIR)/mk/genlink-config.mk
 include $(OPENCM3_DIR)/mk/gcc-config.mk

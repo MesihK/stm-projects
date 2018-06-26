@@ -5,7 +5,7 @@
 #include <libopencm3/stm32/usart.h>
 #include <string.h>
 #include <stdio.h>
-#include "syscalls.h"
+//#include "syscalls.h"
 #include "uart.h"
 
 volatile uint32_t system_millis;
@@ -47,7 +47,6 @@ static void gpio_setup(void)
 int main(void)
 {
     int i=0;
-    char c='m';
     
 	clock_setup();
     systick_setup();
@@ -57,7 +56,6 @@ int main(void)
     while(1)
     {
         printf("Merhaba:%d \n", i++);
-        //_write(1,&c,1);
         gpio_toggle(GPIOC, GPIO13);	/* LED on/off */
         msleep(500);
     }
