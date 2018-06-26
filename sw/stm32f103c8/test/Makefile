@@ -6,6 +6,7 @@ SRCS            += main.c
 SRCS            += uart.c
 SRCS            += ring.c
 SRCS            += spi.c
+SRCS            += flash.c
 SRCS            += ../../../lib/microrl/src/microrl.c
 INCLUDES        += -I.
 INCLUDES        += -I../../../lib/microrl/src/
