@@ -37,7 +37,7 @@ void spi_setup(void) {
    * Data frame format: 8-bit
    * Frame format: MSB First
    */
-  spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_64, SPI_CR1_CPOL_CLK_TO_1_WHEN_IDLE,
+  spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_8, SPI_CR1_CPOL_CLK_TO_1_WHEN_IDLE,
                   SPI_CR1_CPHA_CLK_TRANSITION_2, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
 
   /*
@@ -53,23 +53,29 @@ void spi_setup(void) {
   spi_set_nss_high(SPI1);
   //spi_enable_software_slave_management(SPI1);
 
-  SPI_CR1(USART1) |= SPI_CR2_RXNEIE;
-  SPI_CR1(USART1) |= SPI_CR2_TXEIE;
+  //SPI_CR1(USART1) |= SPI_CR2_RXNEIE;
+  //SPI_CR1(USART1) |= SPI_CR2_TXEIE;
   /* Enable SPI1 periph. */
   spi_enable(SPI1);
   gpio_set(GPIOA, GPIO4);
 }
 
-void spi_send_data(uint8_t data){
-  gpio_clear(GPIOA, GPIO4);
-  ring_write_ch(&spi_tx_ring, data);
-  SPI_CR2(SPI1) |= SPI_CR2_TXEIE;
+uint8_t spi_send_data(uint8_t data){
+  while(SPI_SR(SPI1) & SPI_SR_BSY);
+  SPI_DR(SPI1) = data;
+  while(!SPI_SR(SPI1) & SPI_SR_RXNE);
+  while(SPI_SR(SPI1) & SPI_SR_BSY);
+  return SPI_DR(SPI1);
+  //gpio_clear(GPIOA, GPIO4);
+  //ring_write_ch(&spi_tx_ring, data);
+  //SPI_CR2(SPI1) |= SPI_CR2_TXEIE;
 }
 
+/*
 void spi1_isr(void){
 	if (((SPI_CR2(SPI1) & SPI_CR2_RXNEIE) != 0) &&
 	    ((SPI_SR(USART1) & SPI_SR_RXNE) != 0)) {
-		ring_write_ch(&spi_rx_ring, usart_recv(USART1));
+		ring_write_ch(&spi_rx_ring, spi_read(SPI1));
     }
 	if (((SPI_CR2(SPI1) & SPI_CR2_TXEIE) != 0) &&
 	    ((SPI_SR(USART1) & SPI_SR_TXE) != 0)) {
@@ -85,3 +91,5 @@ void spi1_isr(void){
 		}
     }
 }
+*/
+

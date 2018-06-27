@@ -76,8 +76,10 @@ int main(void)
     printf("Verify:%u \n", verify);
     while(1)
     {
-        printf("Merhaba:%d \n", i++);
-		spi_send_data((uint8_t) i);
+        printf("Merhaba:%d ", i++);
+        gpio_clear(GPIOA, GPIO4);
+		printf("spi: %d \r\n", spi_send_data((uint8_t) i));
+        gpio_set(GPIOA, GPIO4);
 		//rx_value = spi_read(SPI1);
         gpio_toggle(GPIOC, GPIO13);	/* LED on/off */
         msleep(500);

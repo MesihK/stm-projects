@@ -12,7 +12,7 @@
 #include "ring.h"
 
 void spi_setup(void) ;
-void spi_send_data(uint8_t data);
+uint8_t spi_send_data(uint8_t data);
 void spi1_isr(void);
 
 #endif
