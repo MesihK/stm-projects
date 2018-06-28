@@ -22,7 +22,7 @@ void spi_setup(void) {
 
   gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN,
           GPIO6);
-  gpio_clear(GPIOA, GPIO6);
+  gpio_clear(GPIOA, GPIO6); //pull down
 
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
 		      GPIO_CNF_OUTPUT_PUSHPULL, GPIO4);

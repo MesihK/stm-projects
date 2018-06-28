@@ -3,6 +3,7 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/usart.h>
+#include <libopencm3/stm32/timer.h>
 #include <string.h>
 #include <stdio.h>
 //#include "syscalls.h"
@@ -47,6 +48,47 @@ static void gpio_setup(void)
     gpio_set(GPIOA, GPIO2);
 }
 
+static void tim_setup(void)
+{
+	rcc_periph_clock_enable(RCC_TIM2);
+	nvic_enable_irq(NVIC_TIM2_IRQ);
+	rcc_periph_reset_pulse(RST_TIM2);
+
+	/* Timer global mode:
+	 * - No divider
+	 * - Alignment edge
+	 * - Direction up
+	 * (These are actually default values after reset above, so this call
+	 * is strictly unnecessary, but demos the api for alternative settings)
+	 */
+	timer_set_mode(TIM2, TIM_CR1_CKD_CK_INT,
+		TIM_CR1_CMS_EDGE, TIM_CR1_DIR_UP);
+
+	/*
+	 * Please take note that the clock source for STM32 timers
+	 * might not be the raw APB1/APB2 clocks.  In various conditions they
+	 * are doubled.  See the Reference Manual for full details!
+	 * In our case, TIM2 on APB1 is running at double frequency, so this
+	 * sets the prescaler to have the timer run at 5kHz
+	 */
+	timer_set_prescaler(TIM2, ((rcc_apb1_frequency * 2) / 5000));
+
+	timer_disable_preload(TIM2);
+	timer_continuous_mode(TIM2);
+	/* 5khz/20 = .25khz / 256 ~ 10hz = 100ms de bir sira degisecek*/
+	timer_set_period(TIM2, 19);
+
+	timer_enable_counter(TIM2);
+	timer_enable_irq(TIM2, TIM_DIER_UIE);
+}
+void tim2_isr(void)
+{
+	if (timer_get_flag(TIM2, TIM_SR_UIF)) {
+		/* Clear update interrupt flag. */
+		timer_clear_flag(TIM2, TIM_SR_UIF);
+        gpio_toggle(GPIOC, GPIO13);
+    }
+}
 int main(void)
 {
     uint32_t i=0, verify = 0;
@@ -55,9 +97,9 @@ int main(void)
 	clock_setup();
     systick_setup();
 	gpio_setup();
-	spi_setup();
     usart_setup(57600);
     printf("Init si4463\r\n");
+    tim_setup();
     Si446x_init();
 
 

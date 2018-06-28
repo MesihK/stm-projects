@@ -516,7 +516,7 @@ static void exti_setup(void)
 void exti3_isr(void)
 {
 	exti_reset_request(EXTI3);
-    gpio_toggle(GPIOC, GPIO13);
+    //gpio_toggle(GPIOC, GPIO13);
     //SI446X_CB_IRQ();
     Si446x_SERVICE();
 }
