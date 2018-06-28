@@ -50,6 +50,7 @@ static void gpio_setup(void)
 int main(void)
 {
     uint32_t i=0, verify = 0;
+    uint8_t rxBuffer[64];
     
 	clock_setup();
     systick_setup();
@@ -88,10 +89,12 @@ int main(void)
         }
         if(rxComplateFlag){
             rxComplateFlag = 0;
-            printf("data received %f\r\n", rxRSSI/134.0f);
+            Si446x_read(rxBuffer, 64);
+            rxBuffer[rxBuffer[0]] = 0;
+            printf("data received %s\r\n", &rxBuffer[2]);
         }
-        printf("RSSI: %d\r\n", Si446x_getRSSI());
-        msleep(100);
+        //printf("RSSI: %d\r\n", Si446x_getRSSI());
+        //msleep(100);
         //gpio_toggle(GPIOC, GPIO13);
     }
 }
