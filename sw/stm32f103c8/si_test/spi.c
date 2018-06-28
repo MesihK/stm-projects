@@ -20,13 +20,14 @@ void spi_setup(void) {
    //                                         GPIO4 |
                                             GPIO7 );
 
-  gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT,
+  gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN,
           GPIO6);
+  gpio_clear(GPIOA, GPIO6);
 
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
 		      GPIO_CNF_OUTPUT_PUSHPULL, GPIO4);
 
-  nvic_enable_irq(NVIC_SPI1_IRQ);
+  //nvic_enable_irq(NVIC_SPI1_IRQ);
   /* Reset SPI, SPI_CR1 register cleared, SPI is disabled */
   spi_reset(SPI1);
 
@@ -37,8 +38,8 @@ void spi_setup(void) {
    * Data frame format: 8-bit
    * Frame format: MSB First
    */
-  spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_8, SPI_CR1_CPOL_CLK_TO_1_WHEN_IDLE,
-                  SPI_CR1_CPHA_CLK_TRANSITION_2, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
+  spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_64, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+                  SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
 
   /*
    * Set NSS management to software.

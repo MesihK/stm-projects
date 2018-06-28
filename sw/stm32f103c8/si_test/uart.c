@@ -7,7 +7,6 @@ uint8_t output_ring_buffer[BUFFER_SIZE];
 
 int _write(int file, char *ptr, int len)
 {
-    gpio_toggle(GPIOC, GPIO13);
 	int ret;
 
 	if (file == 1) {
@@ -53,8 +52,6 @@ void usart_setup(int baudrate)
 
 void usart1_isr(void)
 {
-    gpio_toggle(GPIOC, GPIO13);
-
 	if (((USART_CR1(USART1) & USART_CR1_RXNEIE) != 0) &&
 	    ((USART_SR(USART1) & USART_SR_RXNE) != 0)) {
 

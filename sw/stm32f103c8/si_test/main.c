@@ -12,11 +12,16 @@
 #include "si4463.h"
 #include "systick.h"
 uint8_t rxComplateFlag = 0;
+uint8_t si4463IRQFlag = 0;
 int16_t rxRSSI = 0;
 
+
+void SI446X_IRQ(){
+    si4463IRQFlag = 1;
+}
 void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 {
-    gpio_toggle(GPIOC, GPIO13);
+    //gpio_toggle(GPIOC, GPIO13);
     rxRSSI = rssi;
     rxComplateFlag = 1;
 }
@@ -32,9 +37,14 @@ static void clock_setup(void)
 static void gpio_setup(void)
 {
 	/* Setup GPIO pin GPIO13 on GPIO port C for LED. */
-	gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ,
-		      GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
+	gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
     gpio_clear(GPIOC, GPIO13);
+
+    //ent enp
+	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
+	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO2);
+    gpio_set(GPIOA, GPIO1);
+    gpio_set(GPIOA, GPIO2);
 }
 
 int main(void)
@@ -66,16 +76,22 @@ int main(void)
 
     i = 0;
     printf("Verify:%u \r\n", verify);
+    Si446x_RX(0);
+    printf("Rx mode\r\n");
+
     while(1)
     {
-        i++;
-        if(i> 10000){
-            i=0;
-            gpio_toggle(GPIOC, GPIO13);
+        if(si4463IRQFlag){
+            si4463IRQFlag = 0;
+            Si446x_SERVICE();
+            printf("Interrupt!\r\n");
         }
         if(rxComplateFlag){
             rxComplateFlag = 0;
             printf("data received %f\r\n", rxRSSI/134.0f);
         }
+        printf("RSSI: %d\r\n", Si446x_getRSSI());
+        msleep(100);
+        //gpio_toggle(GPIOC, GPIO13);
     }
 }

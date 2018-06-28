@@ -359,4 +359,5 @@ uint8_t Si446x_sleep(void);
 */
 si446x_state_t Si446x_getState(void);
 
+void Si446x_SERVICE(void);
 #endif

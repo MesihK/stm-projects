@@ -44,11 +44,11 @@ static inline uint8_t cdeselect(void)
 // need to turn global interrupts off while communicating with the radio.
 // Otherwise, just turn off our own radio interrupt while doing SPI stuff.
 static inline uint8_t interrupt_off(void){
-	exti_disable_request(EXTI0);
+	//exti_disable_request(EXTI3);
     return 1;
 }
 static inline uint8_t interrupt_on(void){
-	exti_enable_request(EXTI0);
+	//exti_enable_request(EXTI3);
     return 0;
 }
 #define SI446X_ATOMIC() for(uint8_t _cs2 = interrupt_off(); _cs2; _cs2 = interrupt_on())
@@ -56,6 +56,7 @@ static inline uint8_t interrupt_on(void){
 
 static void __empty_callback0(void){}
 static void __empty_callback1(int16_t param1){(void)(param1);}
+void __attribute__((weak, alias ("__empty_callback0"))) SI446X_CB_IRQ(void);
 void __attribute__((weak, alias ("__empty_callback0"))) SI446X_CB_CMDTIMEOUT(void);
 void __attribute__((weak, alias ("__empty_callback1"))) SI446X_CB_RXBEGIN(int16_t rssi);
 void __attribute__((weak)) SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi){(void)(length);(void)(rssi);}
@@ -293,7 +294,15 @@ static void applyStartupConfig(void)
 
 void Si446x_init()
 {
+	rcc_periph_clock_enable(SDN_RCC);
+	rcc_periph_clock_enable(CSN_RCC);
+
+	gpio_set_mode(SDN_PRT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, SDN_PIN);
+	gpio_set_mode(CSN_PRT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, CSN_PIN);
+
     gpio_set(CSN_PRT, CSN_PIN);
+    gpio_clear(SDN_PRT, SDN_PIN);
+
     spi_setup();
 
 	resetDevice();
@@ -492,22 +501,29 @@ static void exti_setup(void)
 	/* Enable AFIO clock. */
 	rcc_periph_clock_enable(RCC_AFIO);
 
-	/* Enable EXTI0 interrupt. */
-	nvic_enable_irq(NVIC_EXTI0_IRQ);
+	/* Enable EXTI3 interrupt. */
+	nvic_enable_irq(NVIC_EXTI3_IRQ);
 
-	gpio_set_mode(IRQ_PRT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, IRQ_PIN);
+	gpio_set_mode(IRQ_PRT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, IRQ_PIN);
+    gpio_set(IRQ_PRT, IRQ_PIN); //pull up
 
 	/* Configure the EXTI subsystem. */
-	exti_select_source(EXTI0, IRQ_PRT);
-	exti_set_trigger(EXTI0, EXTI_TRIGGER_FALLING);
-	exti_enable_request(EXTI0);
+	exti_select_source(EXTI3, IRQ_PRT);
+	exti_set_trigger(EXTI3, EXTI_TRIGGER_FALLING);
+	exti_enable_request(EXTI3);
 }
 
-void exti0_isr(void)
+void exti3_isr(void)
+{
+	exti_reset_request(EXTI3);
+    gpio_toggle(GPIOC, GPIO13);
+    //SI446X_CB_IRQ();
+    Si446x_SERVICE();
+}
+void Si446x_SERVICE(void)
 {
 	uint8_t interrupts[8];
 
-	exti_reset_request(EXTI0);
 
 	interrupt(interrupts);
 
