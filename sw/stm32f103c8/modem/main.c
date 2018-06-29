@@ -106,10 +106,10 @@ void SI446X_CB_RXINVALIDSYNC(void)
 
 int rf_tx()
 {
-  /*if((timer_cnt > (128-DEAD_TIME/2) && timer_cnt < (128+DEAD_TIME/2)) || 
+  if((timer_cnt > (128-DEAD_TIME/2) && timer_cnt < (128+DEAD_TIME/2)) || 
       timer_cnt > (255-DEAD_TIME/2) || timer_cnt < (DEAD_TIME/2)) return 0;
   if(eeStruct.id % 2 == 0 && timer_cnt > 128) return 0;
-  if(eeStruct.id % 2 == 1 && timer_cnt < 128) return 0;*/
+  if(eeStruct.id % 2 == 1 && timer_cnt < 128) return 0;
 
   txbuffer[txReadBufCnt][1] = timer_cnt;
   if( Si446x_TX(txbuffer[txReadBufCnt], MAX_PACKET_SIZE, eeStruct.channel, SI446X_STATE_RX) ){
@@ -177,7 +177,7 @@ void tim2_isr(void)
 	if (timer_get_flag(TIM2, TIM_SR_UIF)) {
 		/* Clear update interrupt flag. */
 		timer_clear_flag(TIM2, TIM_SR_UIF);
-        gpio_toggle(GPIOC, GPIO13);
+        timer_cnt++;
     }
 }
 

@@ -44,11 +44,11 @@ static inline uint8_t cdeselect(void)
 // need to turn global interrupts off while communicating with the radio.
 // Otherwise, just turn off our own radio interrupt while doing SPI stuff.
 static inline uint8_t interrupt_off(void){
-	//exti_disable_request(EXTI3);
+	exti_disable_request(EXTI3);
     return 1;
 }
 static inline uint8_t interrupt_on(void){
-	//exti_enable_request(EXTI3);
+	exti_enable_request(EXTI3);
     return 0;
 }
 #define SI446X_ATOMIC() for(uint8_t _cs2 = interrupt_off(); _cs2; _cs2 = interrupt_on())
@@ -99,11 +99,11 @@ static uint8_t waitForResponse(void* out, uint8_t outLen, uint8_t useTimeout)
 {
     int i=0;
 	// With F_CPU at 8MHz and SPI at 4MHz each check takes about 7us + 10us delay
-	uint16_t timeout = 40000;
+	uint32_t timeout = 40000;
 	while(!getResponse(out, outLen))
 	{
         //f=72Mhz / 72 000 0 ~ 10us delay
-		for (i = 0; i < 720000; i++)	/* Wait a bit. */
+		for (i = 0; i < 120; i++)	/* Wait a bit. */
 			__asm__("nop");
 		if(useTimeout && !--timeout)
 		{
@@ -311,6 +311,7 @@ void Si446x_init()
 	Si446x_sleep();
 
 	enabledInterrupts[IRQ_PACKET] = (1<<SI446X_PACKET_RX_PEND) | (1<<SI446X_CRC_ERROR_PEND);
+    enabledInterrupts[IRQ_MODEM] = (1<<SI446X_INVALID_SYNC_PEND);
 	//enabledInterrupts[IRQ_MODEM] = (1<<SI446X_SYNC_DETECT_PEND);
 
     exti_setup();
