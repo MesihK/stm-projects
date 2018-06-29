@@ -1,5 +1,6 @@
-#include "rl2.h"
+#include "rl.h"
 
+char __BUILD_NUMBER = 1;
 microrl_t rl;
 microrl_t * prl = &rl;
 
@@ -26,25 +27,27 @@ void rl_sigint (void)
 
 void rl_help()
 {
-	printf("Si4463 transceiver modem, parameter setter mode.\n");
-	printf("\thelp: prints this text\n");
-	printf("\tset:  (channel, baudrate, rfpower)\n");
-	printf("\t      channel: sets transceiver to desired channel\n");
-	printf("\t      baudrate: sets comminucaton baudrate, needs reset\n");
-	printf("\t      rfpower: sets transceiver output rf power\n");
-	printf("\t      id: sets transceiver address\n");
-	printf("\tclear: clears screen\n");
-	printf("\tsave: saves channel, baudrate and rfpower parameters\n");
-	printf("\tshow: shows channel, baudrate and rfpower parameters\n");
-	printf("\trssi: takes a channel number as argument, shows rssi\n");
-	printf("\tping: takes an address and pings it.\n");
-	printf("\t      If no address given then boradcasts\n");
-	printf("\texit: returns to transceiver operation mode\n");
+	printf("Si4463 transceiver modem, parameter setter mode.\r\n");
+	printf("\thelp: prints this text\r\n");
+	printf("\tset:  (channel, baudrate, rfpower)\r\n");
+	printf("\t      channel: sets transceiver to desired channel\r\n");
+	printf("\t      baudrate: sets comminucaton baudrate, needs reset\r\n");
+	printf("\t      rfpower: sets transceiver output rf power\r\n");
+	printf("\t      id: sets transceiver address\r\n");
+	printf("\tclear: clears screen\r\n");
+	printf("\tsave: saves channel, baudrate and rfpower parameters\r\n");
+	printf("\tshow: shows channel, baudrate and rfpower parameters\r\n");
+	printf("\trssi: takes a channel number as argument, shows rssi\r\n");
+	printf("\tping: takes an address and pings it.\r\n");
+	printf("\t      If no address given then boradcasts\r\n");
+	printf("\texit: returns to transceiver operation mode\r\n");
 }
 
 void rl_print(const char *str)
 {
-	printf("%s", str);
+    while(*str != 0)
+        _write(1, str++, 1);
+	//printf("%s", str);
 }
 
 //*****************************************************************************
@@ -55,11 +58,11 @@ int execute (int argc, const char * const * argv)
 	int i = 0;
 	// just iterate through argv word and compare it with your commands
 	while (i < argc) {
-		if (strcmp (argv[i], P("help")) == 0) {
+		if (strcmp (argv[i], ("help")) == 0) {
 			rl_help();
-		} else if (strcmp (argv[i], P("set")) == 0) {
+		} else if (strcmp (argv[i], ("set")) == 0) {
 			if (++i < argc) {
-				if (strcmp (argv[i], P("channel")) == 0) {
+				if (strcmp (argv[i], ("channel")) == 0) {
 					if (++i < argc) {
 						if( re_match("^ *[0-9]+$", argv[i]) != -1){
 							uint8_t chl = atoi(argv[i]);
@@ -67,17 +70,17 @@ int execute (int argc, const char * const * argv)
 								eeStruct.channel = chl;
 								Si446x_RX(eeStruct.channel);
 								printf("Setting channel to: ");
-								printf("%d\n",eeStruct.channel);
+								printf("%d\r\n",eeStruct.channel);
 							} else {
-								printf("Channel should be between 0-20\n");
+								printf("Channel should be between 0-20\r\n");
 							}
 						} else {
-							printf("Channel should be a number!\n");
+							printf("Channel should be a number!\r\n");
 						}
 					} else {
-						printf("need channel number argument!\n");
+						printf("need channel number argument!\r\n");
 					}
-				} else if (strcmp (argv[i], P("baudrate")) == 0) {
+				} else if (strcmp (argv[i], ("baudrate")) == 0) {
 					if (++i < argc) {
                         if( re_match("^ *[0-9]+$", argv[i]) != -1){
                             uint32_t baudrate = atol(argv[i]);
@@ -86,19 +89,19 @@ int execute (int argc, const char * const * argv)
                                baudrate == 115200 || baudrate == 230400){
                                 eeStruct.baudrate = baudrate; 
                                 printf("Setting baudrate to: ");
-                                printf("%d\n", eeStruct.baudrate);
+                                printf("%d\r\n", eeStruct.baudrate);
                             } else {
-                                printf("Wrong buadrate! Baudrate can be:\n");
-                                printf("\t9600\t19200\r\n\t38400\t57600\r\n\t115200\t230400\n");
+                                printf("Wrong buadrate! Baudrate can be:\r\n");
+                                printf("\t9600\t19200\r\n\t38400\t57600\r\n\t115200\t230400\r\n");
                             }
                         } else {
-                            printf("Baudrate should be a number!\n");
-                            printf("\t9600\t19200\r\n\t38400\t57600\r\n\t115200\t230400\n");
+                            printf("Baudrate should be a number!\r\n");
+                            printf("\t9600\t19200\r\n\t38400\t57600\r\n\t115200\t230400\r\n");
                         }
                     } else {
-                        printf("need baudrate argument!\n");
+                        printf("need baudrate argument!\r\n");
                     }
-				} else if (strcmp (argv[i], P("rfpower")) == 0) {
+				} else if (strcmp (argv[i], ("rfpower")) == 0) {
 			        if (++i < argc) {
                         if( re_match("^ *[0-9]+$", argv[i]) != -1){
                             uint8_t pwr = atoi(argv[i]);
@@ -106,87 +109,87 @@ int execute (int argc, const char * const * argv)
                                 eeStruct.rfpower = pwr; 
                                 Si446x_setTxPower(eeStruct.rfpower);
                                 printf("Setting RF power to: ");
-                                printf("%d\n", eeStruct.rfpower);
+                                printf("%d\r\n", eeStruct.rfpower);
                             } else {
-                                printf("RF power should be in 0 - 127 range!\n");
+                                printf("RF power should be in 0 - 127 range!\r\n");
                             }
                         } else {
-                            printf("RF Power should be a number!\n");
+                            printf("RF Power should be a number!\r\n");
                         }
                     } else {
-                        printf("need RF power argument!\n");
+                        printf("need RF power argument!\r\n");
                     }
-				} else if (strcmp (argv[i], P("id")) == 0) {
+				} else if (strcmp (argv[i], ("id")) == 0) {
 			        if (++i < argc) {
                         if( re_match("^ *[0-9]+$", argv[i]) != -1){
                             uint8_t id = atoi(argv[i]);
                             if( id >= 1 && id <= 254){
                             eeStruct.id = id;
                             printf("Setting id to: ");
-                            printf("%d\n", eeStruct.id);
+                            printf("%d\r\n", eeStruct.id);
                             } else {
-                                printf("ID should be in 1 - 254 range!\n");
+                                printf("ID should be in 1 - 254 range!\r\n");
                             }
                         } else {
-                            printf("ID should be a number!\n");
+                            printf("ID should be a number!\r\n");
                         }
                     } else {
-                        printf("need id argument!\n");
+                        printf("need id argument!\r\n");
                     }
-				} else if (strcmp (argv[i], P("debug")) == 0) {
+				} else if (strcmp (argv[i], ("debug")) == 0) {
 			        if (++i < argc) {
                         if( re_match("^ *[0-9]+$", argv[i]) != -1){
                             eeStruct.debug = atoi(argv[i]);
                             if( eeStruct.debug == 1)
-                                printf("Debug on!\n");
+                                printf("Debug on!\r\n");
                             else{
                                 eeStruct.debug = 0;
-                                printf("Debug off!\n");
+                                printf("Debug off!\r\n");
                             }
                         } else {
-                            printf("Debug can be 0 or 1!\n");
+                            printf("Debug can be 0 or 1!\r\n");
                         }
                     } else {
-                        printf("Debug can be 1 or 0!\n");
+                        printf("Debug can be 1 or 0!\r\n");
                     }
-				} else if (strcmp (argv[i], P("rssiComp")) == 0) {
+				} else if (strcmp (argv[i], ("rssiComp")) == 0) {
 			        if (++i < argc) {
                         if( re_match("^ *[0-9]+$", argv[i]) != -1){
                             if(atoi(argv[i]) <= 0x7F){
                                 eeStruct.rssiComp = atoi(argv[i]);
                                 Si446x_setRSSIComp(eeStruct.rssiComp);
-                                printf("RSSI compansation value succesfully setted!\n");
+                                printf("RSSI compansation value succesfully setted!\r\n");
                             } else {
-                                printf("RSSI compansation shouldn't exceed 127!\n");
+                                printf("RSSI compansation shouldn't exceed 127!\r\n");
                             }
                         } else {
-                            printf("RSSI compansation value should be an integer!\n");
+                            printf("RSSI compansation value should be an integer!\r\n");
                         }
                     } else {
-                        printf("Debug can be 1 or 0!\n");
+                        printf("Debug can be 1 or 0!\r\n");
                     }
 				} else {
-					printf("%s\n", (char*)argv[i]);
-					printf(" wrong argument, see help\n");
+					printf("%s\r\n", (char*)argv[i]);
+					printf(" wrong argument, see help\r\n");
 				}
 			} else {
-				printf("set needs 2 parameter, see help\n");
+				printf("set needs 2 parameter, see help\r\n");
 			}
-		} else if (strcmp (argv[i], P("clear")) == 0) {
+		} else if (strcmp (argv[i], ("clear")) == 0) {
 			printf ("\033[2J");    // ESC seq for clear entire screen
 			printf ("\033[H");     // ESC seq for move cursor at left-top corner
-		} else if (strcmp (argv[i], P("ver")) == 0) {
+		} else if (strcmp (argv[i], ("ver")) == 0) {
             printf("Si4463 transceiver modem ");
-            printf(__DGIT_DESCRIBE);
+            //printf(__DGIT_DESCRIBE);
             printf(" build: ");
             //printf("%l\n", (unsigned long) &__BUILD_DATE);
             //printf(" build: ");
-            printf("%d\n", (unsigned long) &__BUILD_NUMBER);
-		} else if (strcmp (argv[i], P("save")) == 0) {
+            printf("%d\r\n", (unsigned long) &__BUILD_NUMBER);
+		} else if (strcmp (argv[i], ("save")) == 0) {
             eeStruct.eepromTest = EEPROM_TEST;
             //TODO: EEPROM.put(0, eeStruct);
-            printf("Paramterers saved to eeprom\n");
-		} else if (strcmp (argv[i], P("show")) == 0) {
+            printf("Paramterers saved to eeprom\r\n");
+		} else if (strcmp (argv[i], ("show")) == 0) {
             printf("Channel: ");
             printf("%d", eeStruct.channel);
             printf(" RF Power: ");
@@ -196,51 +199,51 @@ int execute (int argc, const char * const * argv)
             printf(" ID: ");
             printf("%d", eeStruct.id);
             printf(" Debug: ");
-            printf("%d\n", eeStruct.debug);
+            printf("%d\r\n", eeStruct.debug);
             printf(" RSSI Compansation: ");
-            printf("%d\n", eeStruct.rssiComp);
-            printf("%d\n", timer_cnt);
-		} else if (strcmp (argv[i], P("rssi")) == 0) {
+            printf("%d\r\n", eeStruct.rssiComp);
+            printf("%d\r\n", timer_cnt);
+		} else if (strcmp (argv[i], ("rssi")) == 0) {
             if (++i < argc) {
                 if( re_match("^ *[0-9]+$", argv[i]) != -1){
                     uint8_t chnl = atoi(argv[i]);
                     if( chnl <= 20){
                         double min = 100.0, max = -200.0;
                         Si446x_RX(chnl);
-                        while(Serial.available() == 0){
+                        while(uart_rx_available() == 0){
                             printf("rssi: ");
-                            double rssi = getRSSI();
+                            double rssi = Si446x_getRSSI()/2.0-134.0;
                             if (rssi > max) max = rssi;
                             if (rssi < min) min = rssi;
                             if(rssi > CHANNEL_TRESHOLD){
                                 printf("\033[31m");
                                 printf("%f", rssi);
-                                printf("dBm\033[0m\n");
+                                printf("dBm\033[0m\r\n");
                             } else {
                                 printf("%f", rssi);
-                                printf("dBm \n");
+                                printf("dBm \r\n");
                             }
-                            delay(250);
-                            process_special_packet();
+                            msleep(250);
+                            //process_special_packet();
                         }
-                        printf("\n\033[33mChannel: ");
+                        printf("\r\n\033[33mChannel: ");
                         printf("%d", chnl);
                         printf(" rssi max: ");
                         printf("%f", max);
                         printf("dBm min: ");
                         printf("%f", min);
-                        printf("dBm\033[0m\n");
+                        printf("dBm\033[0m\r\n");
                         Si446x_RX(eeStruct.channel);
                     } else {
-                        printf("Channel should be in 0 - 20!\n");
+                        printf("Channel should be in 0 - 20!\r\n");
                     }
                 } else {
-                    printf("Channel should be a number!\n");
+                    printf("Channel should be a number!\r\n");
                 }
             } else {
-                printf("need a channel!\n");
+                printf("need a channel!\r\n");
             }
-		} else if (strcmp (argv[i], P("ping")) == 0) {
+		} else if (strcmp (argv[i], ("ping")) == 0) {
             uint8_t addr = BROADCAST;
             uint8_t cntr = 100;
             uint8_t send_cnt = 0;
@@ -248,27 +251,27 @@ int execute (int argc, const char * const * argv)
             if (++i < argc) {
                 addr = atoi(argv[i]);
             }
-            while(Serial.available() == 0){
+            while(uart_rx_available() == 0){
                 if(cntr >= 100){
-                    send_ping(addr);
+                    //send_ping(addr);
                     send_cnt++;
                     cntr = 0;
                 }
                 cntr++;
-                process_special_packet();
-                delay(10);
+                //process_special_packet();
+                msleep(10);
             }
-            printf("\n\033[33mPings send: ");
+            printf("\r\n\033[33mPings send: ");
             printf("%d", send_cnt);
             printf(" pings received: ");
             printf("%d", rxPingRespCnt);
-            printf("\033[0m\n");
-		} else if (strcmp (argv[i], P("exit")) == 0) {
+            printf("\033[0m\r\n");
+		} else if (strcmp (argv[i], ("exit")) == 0) {
             commandModeEnabled = 0;
 		} else {
 			printf ("command: '");
 			printf("%s", (char*)argv[i]);
-			printf("' Not found.\n");
+			printf("' Not found.\r\n");
 		}
 		i++;
 	}
@@ -295,15 +298,15 @@ char ** complet (int argc, const char * const * argv)
 				compl_world [j++] = keyworld [i];
 			}
 		}
-	}	else if ((argc == 2) && (strcmp (argv[0], P("set"))==0)) { // if command needs subcommands
+	}	else if ((argc == 2) && (strcmp (argv[0], ("set"))==0)) { // if command needs subcommands
 		// iterate through subcommand for command set array
 		for (int i = 0; i < _NUM_OF_SET_SCMD; i++) {
 			if (strstr (set_keyworld [i], argv [argc-1]) == set_keyworld [i]) {
 				compl_world [j++] = set_keyworld [i];
 			}
 		}
-	}	else if ((argc == 3) && (strcmp (argv[0], P("set"))==0) && 
-                 (strcmp (argv[1], P("baudrate"))==0)) { // if command needs subcommands
+	}	else if ((argc == 3) && (strcmp (argv[0], ("set"))==0) && 
+                 (strcmp (argv[1], ("baudrate"))==0)) { // if command needs subcommands
 		for (int i = 0; i < _NUM_OF_BAUDRATES; i++) {
 			if (strstr (baudrates [i], argv [argc-1]) == baudrates [i]) {
 				compl_world [j++] = baudrates [i];

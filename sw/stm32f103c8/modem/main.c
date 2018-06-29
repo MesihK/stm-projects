@@ -7,20 +7,22 @@
 #include <string.h>
 #include <stdio.h>
 //#include "syscalls.h"
+#include "microrl.h"
 #include "uart.h"
 #include "spi.h"
 #include "flash.h"
 #include "si4463.h"
 #include "systick.h"
+#include "rl.h"
 
 #define MAX_PACKET_SIZE 64
 #define TIMEOUT 100
 #define TX_CIRCULAR_LENGTH 15
 #define RX_CIRCULAR_LENGTH 15
-#define EEPROM_TEST 0xABCDEF00
-#define CHANNEL_TRESHOLD -80.0
+//#define EEPROM_TEST 0xABCDEF00
+//#define CHANNEL_TRESHOLD -80.0
 //Special Address
-#define BROADCAST 255
+//#define BROADCAST 255
 //Commands
 #define CMD_PING            1
 #define CMD_PING_RESP       2
@@ -34,17 +36,8 @@
 #define TIMER_SCALER        15
 #define DEAD_TIME           TRANSFER_DELAY + TRANSFER_DELAY/8
 
-typedef struct {
-  uint32_t eepromTest;
-  uint8_t channel;
-  uint8_t rfpower;
-  uint32_t baudrate;
-  uint8_t id;
-  uint8_t debug;
-  uint8_t rssiComp;
-}EEPROM_STRUCT;
-EEPROM_STRUCT eeStruct;
 
+EEPROM_STRUCT eeStruct;
 extern volatile uint32_t system_millis;
 
 uint8_t timer_cnt = 0;
@@ -68,6 +61,9 @@ volatile uint32_t rxPingRespCnt = 0;
 
 uint8_t rxComplateFlag = 0;
 uint8_t si4463IRQFlag = 0;
+
+extern microrl_t rl;
+extern microrl_t * prl;
 
 void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 {
@@ -190,6 +186,7 @@ void init_modem(){
 
 int main(void)
 {
+    uint32_t commandModeTimer = 0;
     txCounter = 2;
     lastSerialDataTime = 0;
     rxBufferCnt = 0;
@@ -214,6 +211,31 @@ int main(void)
     eeStruct.eepromTest = EEPROM_TEST;
 
     init_modem();
+
+    microrl_init (prl, rl_print);
+    microrl_set_execute_callback (prl, execute);
+    microrl_set_complete_callback (prl, complet);
+    microrl_set_sigint_callback (prl, rl_sigint);
+    commandModeTimer = system_millis;
+    while (1) {
+        if(uart_rx_available() > 5){
+            while(uart_rx_available()){
+                if(uart_read_ch() == 'a') commandModeEnabled++;
+                else commandModeEnabled = 0;
+                if(system_millis - commandModeTimer > 1000) break;
+            }
+            if(commandModeEnabled > 4) commandModeEnabled = 1;
+            else commandModeEnabled = 0;
+            break;
+        }
+        if(system_millis - commandModeTimer > 1000) break;
+    }
+    while( commandModeEnabled ){
+    // put received char from stdin to microrl lib
+    //process_special_packet();
+        if(uart_rx_available() > 0)
+            microrl_insert_char (prl, uart_read_ch());
+    }
 
     //todo debug only. Do not forget to delete this
     if(eeStruct.debug == 1) printf("\033[31minit\033[0m\r\n");

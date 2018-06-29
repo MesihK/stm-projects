@@ -348,7 +348,8 @@ int16_t Si446x_getRSSI()
 		0xFF
 	};
 	doAPI(data, 2, data, 3);
-	int16_t rssi = rssi_dBm(data[2]);
+	//int16_t rssi = rssi_dBm(data[2]);
+	int16_t rssi = data[2];
 	return rssi;
 }
 
