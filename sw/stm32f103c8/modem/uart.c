@@ -31,6 +31,9 @@ int uart_read(uint8_t *buffer, int len){
     ring_read(&rx_ring, buffer, len);
     return len;
 }
+uint8_t uart_read_ch(){
+    return ring_read_ch(&rx_ring, NULL);
+}
 int uart_rx_available(){
     return ring_get_count(&rx_ring);
 }

@@ -1,18 +1,18 @@
 #include "spi.h"
 
-#define BUFFER_SIZE 128
+/*#define BUFFER_SIZE 128
 struct ring spi_rx_ring;
 uint8_t spi_rx_ring_buffer[BUFFER_SIZE];
 struct ring spi_tx_ring;
-uint8_t spi_tx_ring_buffer[BUFFER_SIZE];
+uint8_t spi_tx_ring_buffer[BUFFER_SIZE];*/
 
 void spi_setup(void) {
 	rcc_periph_clock_enable(RCC_GPIOA);
 	rcc_periph_clock_enable(RCC_AFIO);
 	rcc_periph_clock_enable(RCC_SPI1);
 
-	ring_init(&spi_rx_ring, spi_rx_ring_buffer, BUFFER_SIZE);
-	ring_init(&spi_tx_ring, spi_tx_ring_buffer, BUFFER_SIZE);
+	//ring_init(&spi_rx_ring, spi_rx_ring_buffer, BUFFER_SIZE);
+	//ring_init(&spi_tx_ring, spi_tx_ring_buffer, BUFFER_SIZE);
 
   /* Configure GPIOs: SS=PA4, SCK=PA5, MISO=PA6 and MOSI=PA7 */
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
@@ -38,7 +38,7 @@ void spi_setup(void) {
    * Data frame format: 8-bit
    * Frame format: MSB First
    */
-  spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_64, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
+  spi_init_master(SPI1, SPI_CR1_BAUDRATE_FPCLK_DIV_2, SPI_CR1_CPOL_CLK_TO_0_WHEN_IDLE,
                   SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST);
 
   /*
