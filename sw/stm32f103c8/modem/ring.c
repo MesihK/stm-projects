@@ -44,3 +44,23 @@ int32_t ring_read_ch(struct ring *ring, uint8_t *ch)
 
 	return ret;
 }
+
+int32_t ring_read(struct ring *ring, uint8_t *data, ring_size_t size)
+{
+	int32_t i;
+
+	for (i = 0; i < size; i++) {
+		if (ring_read_ch(ring, &data[i]) < 0)
+			return -i;
+	}
+
+	return i;
+}
+
+int32_t ring_get_count(struct ring *ring){
+    if(ring->end >= ring->begin)
+        return ring->end - ring->begin;
+    else{
+        return ring->size - ring->begin + ring->end;
+    }
+}

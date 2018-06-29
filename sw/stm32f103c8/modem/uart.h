@@ -14,5 +14,7 @@
 int _write(int file, char *ptr, int len);
 void usart_setup(int baudrate);
 void usart1_isr(void);
+int uart_read(uint8_t *buffer, int len);
+int uart_rx_available(void);
 
 #endif
