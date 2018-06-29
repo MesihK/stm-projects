@@ -3,7 +3,7 @@
 #define BUFFER_SIZE 128
 
 struct ring tx_ring;
-uint8_t tx_ring_buffer[BUFFER_SIZE];
+uint8_t tx_ring_buffer[BUFFER_SIZE*2];
 struct ring rx_ring;
 uint8_t rx_ring_buffer[BUFFER_SIZE];
 
@@ -43,7 +43,7 @@ void usart_setup(int baudrate)
 	rcc_periph_clock_enable(RCC_USART1);
 	rcc_periph_clock_enable(RCC_GPIOA);
 
-	ring_init(&tx_ring, tx_ring_buffer, BUFFER_SIZE);
+	ring_init(&tx_ring, tx_ring_buffer, BUFFER_SIZE*2);
 	ring_init(&rx_ring, rx_ring_buffer, BUFFER_SIZE);
 
 	nvic_enable_irq(NVIC_USART1_IRQ);

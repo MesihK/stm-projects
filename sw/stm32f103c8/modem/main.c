@@ -62,6 +62,7 @@ volatile uint8_t specialPacketArrivedFlag = 0;
 volatile uint8_t specialPacketBuffer = 0;
 volatile int16_t rxRSSI = -120;
 volatile uint8_t invalidRxFlag = 0;
+volatile uint8_t cmdTimeoutFlag = 0;
 volatile uint8_t invalidSyncFlag = 0;
 volatile uint32_t rxPingRespCnt = 0;
 
@@ -96,10 +97,7 @@ void SI446X_CB_RXINVALID(int16_t rssi)
 }
 void SI446X_CB_CMDTIMEOUT()
 {
-    if(eeStruct.debug == 1) printf("\n\033[31mcmd timeout resetting device!\033[0m\r\n");
-    Si446x_init();
-    Si446x_setTxPower(eeStruct.rfpower);//SI446X_MAX_TX_POWER
-    Si446x_RX(eeStruct.channel);
+    cmdTimeoutFlag = 1; 
 }
 void SI446X_CB_RXINVALIDSYNC(void)
 {
@@ -183,6 +181,13 @@ void tim2_isr(void)
     }
 }
 
+void init_modem(){
+    Si446x_init();
+    Si446x_setTxPower(eeStruct.rfpower);
+    Si446x_setRSSIComp(eeStruct.rssiComp);
+    Si446x_RX(eeStruct.channel);
+}
+
 int main(void)
 {
     txCounter = 2;
@@ -208,10 +213,7 @@ int main(void)
     eeStruct.baudrate = 57600;
     eeStruct.eepromTest = EEPROM_TEST;
 
-    Si446x_init();
-    Si446x_setTxPower(eeStruct.rfpower);
-    Si446x_setRSSIComp(eeStruct.rssiComp);
-    Si446x_RX(eeStruct.channel);
+    init_modem();
 
     //todo debug only. Do not forget to delete this
     if(eeStruct.debug == 1) printf("\033[31minit\033[0m\r\n");
@@ -222,19 +224,21 @@ int main(void)
 
     while(1)
     {
+        //Si446x_SERVICE();
+        if(cmdTimeoutFlag == 1){
+            cmdTimeoutFlag = 0;
+            if(eeStruct.debug == 1) printf("\n\033[31mcmd timeout resetting device!\033[0m\r\n");
+            init_modem();
+        }
         if(invalidRxFlag == 1) {
             invalidRxFlag = 0;
             if(eeStruct.debug == 1) printf("\n\033[31minvalid rx!\033[0m\r\n");
-            Si446x_init();
-            Si446x_setTxPower(eeStruct.rfpower);//SI446X_MAX_TX_POWER
-            Si446x_RX(eeStruct.channel);
+            init_modem();
         }
         if(invalidSyncFlag == 1) {
             invalidSyncFlag = 0;
             if(eeStruct.debug == 1) printf("\n\033[31minvalid sync!\033[0m\r\n");
-            Si446x_init();
-            Si446x_setTxPower(eeStruct.rfpower);//SI446X_MAX_TX_POWER
-            Si446x_RX(eeStruct.channel);
+            //init_modem();
         }
         if(rxOverflowed == 1){
             if(eeStruct.debug == 1) printf("\n\033[31mRX overflowed!!!\033[0m\r\n");
