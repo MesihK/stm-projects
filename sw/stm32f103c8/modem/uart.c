@@ -1,11 +1,11 @@
 #include "uart.h"
 
-#define BUFFER_SIZE 128
+#define BUFFER_SIZE 1024
 
 struct ring tx_ring;
-uint8_t tx_ring_buffer[BUFFER_SIZE*2];
+uint8_t tx_ring_buffer[BUFFER_SIZE];
 struct ring rx_ring;
-uint8_t rx_ring_buffer[BUFFER_SIZE];
+uint8_t rx_ring_buffer[BUFFER_SIZE*2];
 
 int _write(int file, char *ptr, int len)
 {
@@ -43,8 +43,8 @@ void usart_setup(int baudrate)
 	rcc_periph_clock_enable(RCC_USART1);
 	rcc_periph_clock_enable(RCC_GPIOA);
 
-	ring_init(&tx_ring, tx_ring_buffer, BUFFER_SIZE*2);
-	ring_init(&rx_ring, rx_ring_buffer, BUFFER_SIZE);
+	ring_init(&tx_ring, tx_ring_buffer, BUFFER_SIZE);
+	ring_init(&rx_ring, rx_ring_buffer, BUFFER_SIZE*2);
 
 	nvic_enable_irq(NVIC_USART1_IRQ);
 

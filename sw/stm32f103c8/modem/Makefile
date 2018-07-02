@@ -9,9 +9,12 @@ SRCS            += spi.c
 SRCS            += flash.c
 SRCS            += si4463.c
 SRCS            += systick.c
+SRCS            += rl.c
 SRCS            += ../../../lib/microrl/src/microrl.c
+SRCS            += ../../../lib/tiny-regex-c/re.c
 INCLUDES        += -I.
 INCLUDES        += -I../../../lib/microrl/src/
+INCLUDES        += -I../../../lib/tiny-regex-c/
 
 STFLASH			= $(shell which st-flash)
 

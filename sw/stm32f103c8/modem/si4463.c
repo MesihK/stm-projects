@@ -251,6 +251,17 @@ static void clearFIFO(void)
 	doAPI((uint8_t*)clearFifo, sizeof(clearFifo), NULL, 0);
 }
 
+static uint8_t txFifoSpace(void)
+{
+    uint8_t buff[3];
+	static const uint8_t clearFifo[] = {
+		SI446X_CMD_FIFO_INFO,
+        0
+	};
+	doAPI((uint8_t*)clearFifo, sizeof(clearFifo), buff, 2);
+    return buff[1];
+}
+
 // Read pending interrupts
 // Reading interrupts will also clear them
 // Buff should either be NULL (just clear interrupts) or a buffer of atleast 8 bytes for storing statuses
@@ -431,14 +442,12 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
     //fixed length
 	// Stop the unused parameter warning
 	((void)(len));
+    if(getState() == SI446X_STATE_TX) // Already transmitting
+			return 0;
+    if(txFifoSpace() < 63) return 0;
 
 	SI446X_NO_INTERRUPT()
 	{
-		if(getState() == SI446X_STATE_TX) // Already transmitting
-			return 0;
-
-		// TODO collision avoid or maybe just do collision detect (RSSI jump)
-
 		setState(IDLE_STATE);
 		clearFIFO();
 		interrupt2(NULL, 0, 0, 0xFF);
@@ -466,6 +475,7 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
 		};
 		doAPI(data, sizeof(data), NULL, 0);
 	}
+    while(getState() != SI446X_STATE_TX); // wait for trasnmission to begin
 	return 1;
 }
 

@@ -5,12 +5,13 @@ microrl_t rl;
 microrl_t * prl = &rl;
 
 #define _NUM_OF_CMD 9
-#define _NUM_OF_SET_SCMD 6
+#define _NUM_OF_SET_SCMD 8
 #define _NUM_OF_BAUDRATES 6
 
 char * keyworld [] = {"help", "set", "ver", "clear", "save", "show", "exit",
                       "rssi", "ping"};
-char * set_keyworld [] = {"channel", "baudrate", "rfpower", "id", "debug", "rssiComp"};
+char * set_keyworld [] = {"channel", "baudrate", "rfpower", "id", "debug", "rssiComp",
+                          "transferDelay", "deadTime"};
 char * baudrates [] = {"9600", "19200", "38400", "57600", "115200", "230400"};
 char * compl_world [_NUM_OF_CMD + 1];
 
@@ -168,6 +169,36 @@ int execute (int argc, const char * const * argv)
                     } else {
                         printf("Debug can be 1 or 0!\r\n");
                     }
+				} else if (strcmp (argv[i], ("transferDelay")) == 0) {
+			        if (++i < argc) {
+                        if( re_match("^ *[0-9]+$", argv[i]) != -1){
+                            if(atoi(argv[i]) <= 0x7F){
+                                eeStruct.transferDelay = atoi(argv[i]);
+                                printf("Transfer delay succesfuly setted!\r\n");
+                            } else {
+                                printf("Transfer delay shouldn't exceed 127!\r\n");
+                            }
+                        } else {
+                            printf("Transfer delay should be an integer!\r\n");
+                        }
+                    } else {
+                        printf("Need an integer!\r\n");
+                    }
+				} else if (strcmp (argv[i], ("deadTime")) == 0) {
+			        if (++i < argc) {
+                        if( re_match("^ *[0-9]+$", argv[i]) != -1){
+                            if(atoi(argv[i]) <= 0x7F){
+                                eeStruct.deadTime = atoi(argv[i]);
+                                printf("Dead time succesfuly setted!\r\n");
+                            } else {
+                                printf("Dead time shouldn't exceed 127!\r\n");
+                            }
+                        } else {
+                            printf("Dead time should be an integer!\r\n");
+                        }
+                    } else {
+                        printf("Need an integer!\r\n");
+                    }
 				} else {
 					printf("%s\r\n", (char*)argv[i]);
 					printf(" wrong argument, see help\r\n");
@@ -187,7 +218,7 @@ int execute (int argc, const char * const * argv)
             printf("%d\r\n", (unsigned long) &__BUILD_NUMBER);
 		} else if (strcmp (argv[i], ("save")) == 0) {
             eeStruct.eepromTest = EEPROM_TEST;
-            //TODO: EEPROM.put(0, eeStruct);
+            eeprom_save();
             printf("Paramterers saved to eeprom\r\n");
 		} else if (strcmp (argv[i], ("show")) == 0) {
             printf("Channel: ");
@@ -201,7 +232,11 @@ int execute (int argc, const char * const * argv)
             printf(" Debug: ");
             printf("%d\r\n", eeStruct.debug);
             printf(" RSSI Compansation: ");
-            printf("%d\r\n", eeStruct.rssiComp);
+            printf("%d", eeStruct.rssiComp);
+            printf(" Transfer Delay: ");
+            printf("%d", eeStruct.transferDelay);
+            printf(" Dead time: ");
+            printf("%d\r\n", eeStruct.deadTime);
             printf("%d\r\n", timer_cnt);
 		} else if (strcmp (argv[i], ("rssi")) == 0) {
             if (++i < argc) {
@@ -224,7 +259,7 @@ int execute (int argc, const char * const * argv)
                                 printf("dBm \r\n");
                             }
                             msleep(250);
-                            //process_special_packet();
+                            process_special_packet();
                         }
                         printf("\r\n\033[33mChannel: ");
                         printf("%d", chnl);
@@ -248,17 +283,19 @@ int execute (int argc, const char * const * argv)
             uint8_t cntr = 100;
             uint8_t send_cnt = 0;
             rxPingRespCnt = 0;
+            init_modem();
             if (++i < argc) {
                 addr = atoi(argv[i]);
             }
             while(uart_rx_available() == 0){
                 if(cntr >= 100){
-                    //send_ping(addr);
+                    
+                    send_ping(addr);
                     send_cnt++;
                     cntr = 0;
                 }
                 cntr++;
-                //process_special_packet();
+                process_special_packet();
                 msleep(10);
             }
             printf("\r\n\033[33mPings send: ");
@@ -324,3 +361,45 @@ char ** complet (int argc, const char * const * argv)
 	return compl_world;
 }
 
+void eeprom_save(void){
+    uint32_t buffer[9];
+
+    buffer[0] = eeStruct.eepromTest;
+    buffer[1] = eeStruct.channel;
+    buffer[2] = eeStruct.rfpower;
+    buffer[3] = eeStruct.baudrate;
+    buffer[4] = eeStruct.id;
+    buffer[5] = eeStruct.debug;
+    buffer[6] = eeStruct.rssiComp;
+    buffer[7] = eeStruct.transferDelay;
+    buffer[8] = eeStruct.deadTime;
+
+    flash_program_data(0, buffer, 4*9);
+}
+void eeprom_load(void){
+    uint32_t buffer[9];
+    flash_read_data(0, 4*9, buffer);
+
+    if(buffer[0] == EEPROM_TEST){
+        eeStruct.eepromTest = buffer[0];
+        eeStruct.channel = buffer[1];
+        eeStruct.rfpower = buffer[2];
+        eeStruct.baudrate = buffer[3];
+        eeStruct.id = buffer[4];
+        eeStruct.debug = buffer[5];
+        eeStruct.rssiComp = buffer[6];
+        eeStruct.transferDelay = buffer[7];
+        eeStruct.deadTime = buffer[8];
+    } else {
+        //eeprom default
+        eeStruct.eepromTest = EEPROM_TEST;
+        eeStruct.channel = 0;
+        eeStruct.rfpower = 50;
+        eeStruct.baudrate = 57600;
+        eeStruct.id = 1;
+        eeStruct.debug = 1;
+        eeStruct.rssiComp = 48;
+        eeStruct.transferDelay = 5;
+        eeStruct.deadTime = 10;
+    }
+}

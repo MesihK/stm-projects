@@ -17,8 +17,8 @@
 
 #define MAX_PACKET_SIZE 64
 #define TIMEOUT 100
-#define TX_CIRCULAR_LENGTH 15
-#define RX_CIRCULAR_LENGTH 15
+#define TX_CIRCULAR_LENGTH 80
+#define RX_CIRCULAR_LENGTH 80
 //#define EEPROM_TEST 0xABCDEF00
 //#define CHANNEL_TRESHOLD -80.0
 //Special Address
@@ -31,16 +31,10 @@
 #define DEST_ADDR           3
 #define CMD                 4
 
-//TimeSync
-#define TRANSFER_DELAY      32 //80k = 66, 100k = 55, 150k=39 200k=32 300k=24 400k=20
-#define TIMER_SCALER        15
-#define DEAD_TIME           TRANSFER_DELAY + TRANSFER_DELAY/8
-
-
 EEPROM_STRUCT eeStruct;
 extern volatile uint32_t system_millis;
 
-uint8_t timer_cnt = 0;
+volatile uint8_t timer_cnt = 0;
 uint8_t rxbuffer[RX_CIRCULAR_LENGTH][MAX_PACKET_SIZE];
 uint8_t txbuffer[TX_CIRCULAR_LENGTH][MAX_PACKET_SIZE];
 volatile uint8_t rxBufferCnt;
@@ -65,12 +59,16 @@ uint8_t si4463IRQFlag = 0;
 extern microrl_t rl;
 extern microrl_t * prl;
 
+void send_ping(uint8_t addr);
+void send_ping_resp(uint8_t addr, int16_t rssi);
+void process_special_packet(void);
+
 void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 {
     rxRSSI = rssi;
     Si446x_read((uint8_t*)rxbuffer[rxBufferCnt], length);
     uint8_t len = rxbuffer[rxBufferCnt][0];
-    timer_cnt = rxbuffer[rxBufferCnt][1] + TRANSFER_DELAY;
+    timer_cnt = rxbuffer[rxBufferCnt][1] + eeStruct.transferDelay;
     if(len > MAX_PACKET_SIZE) {
         //invalid packet len!
         len = MAX_PACKET_SIZE;
@@ -102,13 +100,15 @@ void SI446X_CB_RXINVALIDSYNC(void)
 
 int rf_tx()
 {
-  if((timer_cnt > (128-DEAD_TIME/2) && timer_cnt < (128+DEAD_TIME/2)) || 
-      timer_cnt > (255-DEAD_TIME/2) || timer_cnt < (DEAD_TIME/2)) return 0;
+  if((timer_cnt > (128-eeStruct.deadTime/2) && timer_cnt < (128+eeStruct.deadTime/2)) || 
+      timer_cnt > (255-eeStruct.deadTime/2) || timer_cnt < (eeStruct.deadTime/2)) return 0;
   if(eeStruct.id % 2 == 0 && timer_cnt > 128) return 0;
   if(eeStruct.id % 2 == 1 && timer_cnt < 128) return 0;
 
   txbuffer[txReadBufCnt][1] = timer_cnt;
   if( Si446x_TX(txbuffer[txReadBufCnt], MAX_PACKET_SIZE, eeStruct.channel, SI446X_STATE_RX) ){
+    //_write(1, &txbuffer[txReadBufCnt][2], 4);
+    //printf(" \r\n");
     return 1;
   }
   return 0;
@@ -163,7 +163,7 @@ static void tim_setup(void)
 	timer_disable_preload(TIM2);
 	timer_continuous_mode(TIM2);
 	/* 5khz/20 = .25khz / 256 ~ 10hz = 100ms de bir sira degisecek*/
-	timer_set_period(TIM2, 19);
+	timer_set_period(TIM2, 1);
 
 	timer_enable_counter(TIM2);
 	timer_enable_irq(TIM2, TIM_DIER_UIE);
@@ -184,8 +184,67 @@ void init_modem(){
     Si446x_RX(eeStruct.channel);
 }
 
+void send_ping(uint8_t addr)
+{
+    memset(txbuffer[txReadBufCnt], 0, MAX_PACKET_SIZE);
+    txbuffer[txReadBufCnt][0] = 0;
+    txbuffer[txReadBufCnt][SOURCE_ADDR] = eeStruct.id;
+    txbuffer[txReadBufCnt][DEST_ADDR] = addr;
+    txbuffer[txReadBufCnt][CMD] = CMD_PING;
+    while (rf_tx() <= 0);
+}
+void send_ping_resp(uint8_t addr, int16_t rssi)
+{
+    memset(txbuffer[txReadBufCnt], 0, MAX_PACKET_SIZE);
+    txbuffer[txReadBufCnt][0] = 0;
+    txbuffer[txReadBufCnt][SOURCE_ADDR] = eeStruct.id;
+    txbuffer[txReadBufCnt][DEST_ADDR] = addr;
+    txbuffer[txReadBufCnt][CMD] = CMD_PING_RESP;
+    txbuffer[txReadBufCnt][5] = (uint8_t)rssi;
+    txbuffer[txReadBufCnt][6] = (uint8_t)(rssi >> 8);
+    while (rf_tx() <= 0);
+}
+void process_special_packet()
+{
+    if(specialPacketArrivedFlag == 0)
+        return;
+    specialPacketArrivedFlag = 0;
+    if( rxbuffer[specialPacketBuffer][DEST_ADDR] != eeStruct.id &&
+        rxbuffer[specialPacketBuffer][DEST_ADDR] != BROADCAST){
+        //address missmatch
+        if(eeStruct.debug == 1) printf("\033[31mAddress missmatch!\033[0m\r\n");
+        rl_reset_cursor();
+        return;
+    }
+    switch(rxbuffer[specialPacketBuffer][CMD]) {
+        case CMD_PING:
+            send_ping_resp(rxbuffer[specialPacketBuffer][SOURCE_ADDR], rxRSSI);
+            //Serial.print(P("Respond to ping coming from: "));
+            //Serial.print(rxbuffer[specialPacketBuffer][SOURCE_ADDR]);
+            //Serial.print(P(" rssi: "));
+            //Serial.print(rxRSSI);
+            //rl_reset_cursor();
+        break;
+        case CMD_PING_RESP: {
+            int16_t rssi = rxbuffer[specialPacketBuffer][5];
+            rssi += ((int16_t)rxbuffer[specialPacketBuffer][6]<<8);
+            printf("Ping received from: %d with rssi: %f, our rssi: %f",
+                   rxbuffer[specialPacketBuffer][SOURCE_ADDR], 
+                   rssi/2.0-134.0, rxRSSI/2.0-134.0);
+            rxPingRespCnt++;
+            //rl_reset_cursor();
+        break;
+        }
+        default:
+            printf("\033[31mUnknown Command!\033[0m\r\n");
+            rl_reset_cursor();
+        break;
+    }
+}
+
 int main(void)
 {
+    uint8_t p1=1,p2=1;
     uint32_t commandModeTimer = 0;
     txCounter = 2;
     lastSerialDataTime = 0;
@@ -198,17 +257,10 @@ int main(void)
 	clock_setup();
     systick_setup();
 	gpio_setup();
-    usart_setup(57600);
     tim_setup();
 
-    //eeprom default
-    eeStruct.channel = 0;
-    eeStruct.debug = 1;
-    eeStruct.rfpower = 50;
-    eeStruct.id = 1;
-    eeStruct.rssiComp = 48;
-    eeStruct.baudrate = 57600;
-    eeStruct.eepromTest = EEPROM_TEST;
+    eeprom_load();
+    usart_setup(eeStruct.baudrate);
 
     init_modem();
 
@@ -222,17 +274,17 @@ int main(void)
             while(uart_rx_available()){
                 if(uart_read_ch() == 'a') commandModeEnabled++;
                 else commandModeEnabled = 0;
-                if(system_millis - commandModeTimer > 1000) break;
+                if(system_millis - commandModeTimer > 2000) break;
             }
             if(commandModeEnabled > 4) commandModeEnabled = 1;
             else commandModeEnabled = 0;
             break;
         }
-        if(system_millis - commandModeTimer > 1000) break;
+        if(system_millis - commandModeTimer > 2000) break;
     }
     while( commandModeEnabled ){
-    // put received char from stdin to microrl lib
-    //process_special_packet();
+        // put received char from stdin to microrl lib
+        process_special_packet();
         if(uart_rx_available() > 0)
             microrl_insert_char (prl, uart_read_ch());
     }
@@ -246,6 +298,17 @@ int main(void)
 
     while(1)
     {
+
+        /*if( timer_cnt > 128 && p1){
+            printf("turn 1\r\n");
+            p1 = 0;
+            p2 = 1;
+        }
+        if( timer_cnt < 128 && p2){
+            printf("turn 2\r\n");
+            p1 = 1;
+            p2 = 0;
+        }*/
         //Si446x_SERVICE();
         if(cmdTimeoutFlag == 1){
             cmdTimeoutFlag = 0;
@@ -267,15 +330,25 @@ int main(void)
             rxOverflowed = 0;
         }
         while(rxReadBufCnt != rxBufferCnt) {
+            //if our turn than do not wait and send the data
+            /*if(txBufferCnt != txReadBufCnt && (
+                  (eeStruct.id % 2 == 0 && timer_cnt < 128) ||
+                  (eeStruct.id % 2 == 1 && timer_cnt > 128) ))
+                break;*/
             if(rxbuffer[rxReadBufCnt][0] != 0)
                 _write(1, (char*)&rxbuffer[rxReadBufCnt][2], rxbuffer[rxReadBufCnt][0]-2);
             rxReadBufCnt++;
             if( rxReadBufCnt >= RX_CIRCULAR_LENGTH ) rxReadBufCnt = 0;
         }
-        if(uart_rx_available()  >= MAX_PACKET_SIZE/2 ||
+        if(uart_rx_available()  >= MAX_PACKET_SIZE ||
           (uart_rx_available() > 0 && (system_millis - lastSerialDataTime > TIMEOUT)))
         {
             while(uart_rx_available() > 0){
+                //if our turn than do not wait and send the data
+                /*if(txBufferCnt != txReadBufCnt && (
+                      (eeStruct.id % 2 == 0 && timer_cnt < 128) ||
+                      (eeStruct.id % 2 == 1 && timer_cnt > 128) ))
+                    break;*/
                 txbuffer[txBufferCnt][txCounter++] = uart_read_ch();
                 if(txCounter >= MAX_PACKET_SIZE) {
                     txCounter = 2;
@@ -291,10 +364,19 @@ int main(void)
 
         if(txBufferCnt != txReadBufCnt){
             //we are here because a buffer full
-            txbuffer[txReadBufCnt][0] = MAX_PACKET_SIZE;
-            if( rf_tx() ){
-                txReadBufCnt++;
-                if ( txReadBufCnt >= TX_CIRCULAR_LENGTH ) txReadBufCnt = 0;
+            /*if(txBufferCnt >= txReadBufCnt)
+                printf(" %d,%d \r\n", uart_rx_available(), txBufferCnt-txReadBufCnt);
+            else
+                printf(" %d,%d \r\n", uart_rx_available(), TX_CIRCULAR_LENGTH - txReadBufCnt-txBufferCnt);
+                */
+            while(txBufferCnt != txReadBufCnt && (
+                  (eeStruct.id % 2 == 0 && timer_cnt < 128) ||
+                  (eeStruct.id % 2 == 1 && timer_cnt > 128) )){
+                txbuffer[txReadBufCnt][0] = MAX_PACKET_SIZE;
+                if( rf_tx() ){
+                    txReadBufCnt++;
+                    if ( txReadBufCnt >= TX_CIRCULAR_LENGTH ) txReadBufCnt = 0;
+                }
             }
         }
 
@@ -306,5 +388,6 @@ int main(void)
                 txCounter = 2;
             }
         }
+
     }
 }
