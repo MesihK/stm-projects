@@ -5,19 +5,26 @@
 struct ring tx_ring;
 uint8_t tx_ring_buffer[BUFFER_SIZE];
 struct ring rx_ring;
-uint8_t rx_ring_buffer[BUFFER_SIZE*2];
+uint8_t rx_ring_buffer[BUFFER_SIZE];
 
 int _write(int file, char *ptr, int len)
 {
-	int ret;
+	int ret=len;
 
 	if (file == 1) {
+        if(ring_get_count(&tx_ring)) 
+            USART_CR1(USART1) |= USART_CR1_TXEIE;
+        while(ring_get_count(&tx_ring) > BUFFER_SIZE-len-1);
+        //USART_CR1(USART1) &= ~USART_CR1_TXEIE;
 		ret = ring_write(&tx_ring, (uint8_t *)ptr, len);
+		USART_CR1(USART1) |= USART_CR1_TXEIE;
+        
+        //for(int i =0; i< len; i++)
+         //   usart_send_blocking(USART1, ptr[i]);
 
 		if (ret < 0)
 			ret = -ret;
 
-		USART_CR1(USART1) |= USART_CR1_TXEIE;
 
 		return ret;
 	}
@@ -37,6 +44,9 @@ uint8_t uart_read_ch(){
 int uart_rx_available(){
     return ring_get_count(&rx_ring);
 }
+int uart_tx_available(){
+    return BUFFER_SIZE - ring_get_count(&tx_ring);
+}
 
 void usart_setup(int baudrate)
 {
@@ -44,7 +54,7 @@ void usart_setup(int baudrate)
 	rcc_periph_clock_enable(RCC_GPIOA);
 
 	ring_init(&tx_ring, tx_ring_buffer, BUFFER_SIZE);
-	ring_init(&rx_ring, rx_ring_buffer, BUFFER_SIZE*2);
+	ring_init(&rx_ring, rx_ring_buffer, BUFFER_SIZE);
 
 	nvic_enable_irq(NVIC_USART1_IRQ);
 
@@ -62,11 +72,16 @@ void usart_setup(int baudrate)
 
 	USART_CR1(USART1) |= USART_CR1_RXNEIE;
 
+    USART_CR1(USART1) &= ~USART_CR1_TCIE;
+    USART_CR1(USART1) &= ~USART_CR1_IDLEIE;
+    USART_CR1(USART1) &= ~USART_CR1_PEIE;
+    USART_CR1(USART1) &= ~USART_CR1_TXEIE;
 	usart_enable(USART1);
 }
 
 void usart1_isr(void)
 {
+    //gpio_clear(GPIOC, GPIO13);
 	if (((USART_CR1(USART1) & USART_CR1_RXNEIE) != 0) &&
 	    ((USART_SR(USART1) & USART_SR_RXNE) != 0)) {
 
@@ -78,6 +93,7 @@ void usart1_isr(void)
 
 		int32_t data;
 
+        USART_SR(USART1) &= ~USART_SR_TXE;
 		data = ring_read_ch(&tx_ring, NULL);
 
 		if (data == -1) {

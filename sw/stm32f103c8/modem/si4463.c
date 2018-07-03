@@ -21,10 +21,25 @@
 #define IRQ_MODEM				1
 #define IRQ_CHIP				2
 
+#define IO0_PIN GPIO1
+#define IO0_PRT GPIOB
+#define IO0_RCC RCC_GPIOB
+
+#define IO1_PIN GPIO0
+#define IO1_PRT GPIOB
+#define IO1_RCC RCC_GPIOB
+
+#define CTS_PRT IO1_PRT
+#define CTS_PIN IO1_PIN
+
+#define TXS_PRT IO0_PRT
+#define TXS_PIN IO0_PIN
+
 static const uint8_t config[] = RADIO_CONFIGURATION_DATA_ARRAY;
 static volatile uint8_t enabledInterrupts[3];
 volatile uint8_t isTransmitting = 0;
 extern EEPROM_STRUCT eeStruct;
+volatile uint8_t useCTS = 0;
 
 #define rssi_dBm(val)			((val / 2) - 134)
 
@@ -53,7 +68,14 @@ static inline uint8_t interrupt_on(void){
 	exti_enable_request(EXTI3);
     return 0;
 }
-#define SI446X_ATOMIC() for(uint8_t _cs2 = interrupt_off(); _cs2; _cs2 = interrupt_on())
+static inline uint8_t atomic_on(void){
+    return 0;
+}
+static inline uint8_t atomic_off(void){
+    return 1;
+}
+#define SI446X_ATOMIC() for(uint8_t _cs2 = atomic_off(); _cs2; _cs2 = atomic_on())
+//#define SI446X_ATOMIC() for(uint8_t _cs2 = atomic_off(); _cs2; _cs2 = atomic_on())
 #define SI446X_NO_INTERRUPT() for(uint8_t _cs3 = interrupt_off(); _cs3; _cs3 = interrupt_on())
 
 static void __empty_callback0(void){}
@@ -76,15 +98,21 @@ static uint8_t getResponse(void* buff, uint8_t len)
 {
 	uint8_t cts = 0;
 
+    if(useCTS){
+        cts = gpio_get(CTS_PRT, CTS_PIN);
+        if(!cts) return cts;
+    }
 	SI446X_ATOMIC()
 	{
 		CHIPSELECT()
 		{
-			// Send command
-			spi_transfer(SI446X_CMD_READ_CMD_BUFF);
+            if(!useCTS){
+                // Send command
+                spi_transfer(SI446X_CMD_READ_CMD_BUFF);
 
-			// Get CTS value
-			cts = (spi_transfer(0xFF) == 0xFF);
+                // Get CTS value
+                cts = (spi_transfer(0xFF) == 0xFF);
+            }
 
 			if(cts)
 			{
@@ -102,11 +130,11 @@ static uint8_t waitForResponse(void* out, uint8_t outLen, uint8_t useTimeout)
 {
     int i=0;
 	// With F_CPU at 8MHz and SPI at 4MHz each check takes about 7us + 10us delay
-	uint32_t timeout = 10000;
+	uint32_t timeout = 1000;
 	while(!getResponse(out, outLen))
 	{
         //f=72Mhz / 72 000 0 ~ 10us delay
-		for (i = 0; i < 120; i++)	/* Wait a bit. */
+		for (i = 0; i < 1200; i++)	/* Wait a bit. */
 			__asm__("nop");
 		if(useTimeout && !--timeout)
 		{
@@ -270,8 +298,11 @@ static uint8_t txFifoSpace(void)
 // Buff should either be NULL (just clear interrupts) or a buffer of atleast 8 bytes for storing statuses
 static void interrupt(void* buff)
 {
+    uint8_t tempCTS = useCTS;
 	uint8_t data = SI446X_CMD_GET_INT_STATUS;
+    useCTS = 0;
 	doAPI(&data, sizeof(data), buff, 8);
+    useCTS = tempCTS;
 }
 
 // Similar to interrupt() but with the option of not clearing certain interrupt flags
@@ -313,9 +344,17 @@ void Si446x_init()
 {
 	rcc_periph_clock_enable(SDN_RCC);
 	rcc_periph_clock_enable(CSN_RCC);
+	rcc_periph_clock_enable(IO0_RCC);
+	rcc_periph_clock_enable(IO1_RCC);
 
 	gpio_set_mode(SDN_PRT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, SDN_PIN);
 	gpio_set_mode(CSN_PRT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, CSN_PIN);
+
+	gpio_set_mode(IO0_PRT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, IO0_PIN);
+	gpio_set_mode(IO1_PRT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, IO1_PIN);
+    gpio_clear(IO0_PRT, IO0_PIN);
+    gpio_clear(IO1_PRT, IO1_PIN);
+
 
     gpio_set(CSN_PRT, CSN_PIN);
     gpio_clear(SDN_PRT, SDN_PIN);
@@ -332,6 +371,7 @@ void Si446x_init()
 	//enabledInterrupts[IRQ_MODEM] = (1<<SI446X_SYNC_DETECT_PEND);
 
     exti_setup();
+    useCTS = 1;
 }
 
 void Si446x_getInfo(si446x_info_t* info)
@@ -447,15 +487,17 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
 {
     //fixed length
 	// Stop the unused parameter warning
-    int i = 0;
+    int j = 0;
     int timeout = 1000;
 	((void)(len));
 
+    if(gpio_get(TXS_PRT, TXS_PIN)) return 0;
+
 	SI446X_NO_INTERRUPT()
 	{
-        if(getState() == SI446X_STATE_TX) // Already transmitting
-                return 0;
-        if(txFifoSpace() < 64) return 0;
+        //if(getState() == SI446X_STATE_TX) // Already transmitting
+                //return 0;
+        //if(txFifoSpace() < 64) return 0;
         isTransmitting = 1;
 
 		setState(IDLE_STATE);
@@ -484,7 +526,8 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
 			0
 		};
 		doAPI(data, sizeof(data), NULL, 0);
-        while(getState() != SI446X_STATE_TX && timeout > 0) // wait for trasnmission to begin
+        //while(getState() != SI446X_STATE_TX && timeout > 0) // wait for trasnmission to begin
+        while(gpio_get(TXS_PRT, TXS_PIN) == 0 && timeout > 0) // wait for trasnmission to begin
         {
             timeout--; 
             iwdg_reset();
@@ -493,7 +536,7 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
                 SI446X_CB_TXTIMEOUT();
                 return 0;
             }
-            for (i = 0; i < 120; i++)	// Wait a bit. 
+            for (j = 0; j < 120; j++)	// Wait a bit. 
                 __asm__("nop");
         }
         isTransmitting = 0;
@@ -557,6 +600,7 @@ void exti3_isr(void)
 }
 void Si446x_SERVICE(void)
 {
+    //interrupt_off();
 	uint8_t interrupts[8];
 
 
@@ -594,7 +638,8 @@ void Si446x_SERVICE(void)
 	if(interrupts[2] & (1<<SI446X_PACKET_RX_PEND))
 	{
 		uint8_t len = SI446X_FIXED_LENGTH;
-		SI446X_CB_RXCOMPLETE(len, getLatchedRSSI());
+		//SI446X_CB_RXCOMPLETE(len, getLatchedRSSI());
+		SI446X_CB_RXCOMPLETE(len, 0);
 	}
 
 	// Corrupted packet
@@ -614,4 +659,5 @@ void Si446x_SERVICE(void)
 
 	if(interrupts[6] & (1<<SI446X_WUT_PEND))
 		SI446X_CB_WUT();
+    //interrupt_on();
 }

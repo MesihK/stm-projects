@@ -19,7 +19,7 @@ INCLUDES        += -I../../../lib/tiny-regex-c/
 STFLASH			= $(shell which st-flash)
 
 ARCHFLAGS 		= -mthumb -mcpu=cortex-m3 -msoft-float
-CFLAGS          += -std=c99 -O3  $(INCLUDES)
+CFLAGS          += -std=c99 $(INCLUDES)
 CFLAGS 			+= -Wall -Wextra -Wimplicit-function-declaration -Wredundant-decls -Wstrict-prototypes -Wundef -Wshadow -MD
 CFLAGS			+= -fno-common -ffunction-sections -fdata-sections
 LDFLAGS         += -static -nostartfiles -mfix-cortex-m3-ldrd  

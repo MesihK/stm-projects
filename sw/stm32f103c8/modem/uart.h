@@ -17,5 +17,6 @@ void usart1_isr(void);
 uint8_t uart_read_ch(void);
 int uart_read(uint8_t *buffer, int len);
 int uart_rx_available(void);
+int uart_tx_available(void);
 
 #endif

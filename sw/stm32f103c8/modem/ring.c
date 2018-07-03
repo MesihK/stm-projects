@@ -10,11 +10,11 @@ void ring_init(struct ring *ring, uint8_t *buf, ring_size_t size)
 
 int32_t ring_write_ch(struct ring *ring, uint8_t ch)
 {
-	if (((ring->end + 1) % ring->size) != ring->begin) {
+	//if (((ring->end + 1) % ring->size) != ring->begin) {
 		ring->data[ring->end++] = ch;
 		ring->end %= ring->size;
 		return (uint32_t)ch;
-	}
+	//}
 
 	return -1;
 }

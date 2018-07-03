@@ -18,8 +18,8 @@
 
 #define MAX_PACKET_SIZE 64
 #define TIMEOUT 100
-#define TX_CIRCULAR_LENGTH 40
-#define RX_CIRCULAR_LENGTH 40
+#define TX_CIRCULAR_LENGTH 90
+#define RX_CIRCULAR_LENGTH 90
 //#define EEPROM_TEST 0xABCDEF00
 //#define CHANNEL_TRESHOLD -80.0
 //Special Address
@@ -36,8 +36,8 @@ EEPROM_STRUCT eeStruct;
 extern volatile uint32_t system_millis;
 
 volatile uint8_t timer_cnt = 0;
-uint8_t rxbuffer[RX_CIRCULAR_LENGTH][MAX_PACKET_SIZE];
-uint8_t txbuffer[TX_CIRCULAR_LENGTH][MAX_PACKET_SIZE];
+volatile uint8_t rxbuffer[RX_CIRCULAR_LENGTH][MAX_PACKET_SIZE];
+volatile uint8_t txbuffer[TX_CIRCULAR_LENGTH][MAX_PACKET_SIZE];
 volatile uint8_t rxBufferCnt;
 volatile uint8_t rxReadBufCnt;
 volatile uint8_t rxOverflowed;
@@ -67,9 +67,10 @@ void process_special_packet(void);
 void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 {
     rxRSSI = rssi;
-    Si446x_read((uint8_t*)rxbuffer[rxBufferCnt], length);
+    Si446x_read((uint8_t*)rxbuffer[rxBufferCnt], MAX_PACKET_SIZE);
     uint8_t len = rxbuffer[rxBufferCnt][0];
-    timer_cnt = rxbuffer[rxBufferCnt][1] + eeStruct.transferDelay;
+    if(len <= MAX_PACKET_SIZE)
+        timer_cnt = rxbuffer[rxBufferCnt][1] + eeStruct.transferDelay;
     if(len > MAX_PACKET_SIZE) {
         //invalid packet len!
         len = MAX_PACKET_SIZE;
@@ -133,7 +134,7 @@ static void gpio_setup(void)
 {
 	/* Setup GPIO pin GPIO13 on GPIO port C for LED. */
 	gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
-    gpio_clear(GPIOC, GPIO13);
+    gpio_set(GPIOC, GPIO13);
 
     //ent enp
 	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO1);
@@ -306,7 +307,7 @@ int main(void)
     so wrorng overflowed signal may ocur. */
     rxOverflowed = 0; 
 
-    iwdg_set_period_ms(120);
+    iwdg_set_period_ms(150);
     iwdg_start();
     while(1)
     {
@@ -349,7 +350,8 @@ int main(void)
                   (eeStruct.id % 2 == 1 && timer_cnt > 128) ))
                 break;*/
             iwdg_reset();
-            if(rxbuffer[rxReadBufCnt][0] != 0)
+            if(uart_tx_available() < MAX_PACKET_SIZE) break;
+            if(rxbuffer[rxReadBufCnt][0] > 2 && rxbuffer[rxReadBufCnt][0] <= MAX_PACKET_SIZE)
                 _write(1, (char*)&rxbuffer[rxReadBufCnt][2], rxbuffer[rxReadBufCnt][0]-2);
             rxReadBufCnt++;
             if( rxReadBufCnt >= RX_CIRCULAR_LENGTH ) rxReadBufCnt = 0;
@@ -357,6 +359,7 @@ int main(void)
         if(uart_rx_available()  >= MAX_PACKET_SIZE ||
           (uart_rx_available() > 0 && (system_millis - lastSerialDataTime > TIMEOUT)))
         {
+            gpio_clear(GPIOC, GPIO13);
             while(uart_rx_available() > 0){
                 //if our turn than do not wait and send the data
                 /*if(txBufferCnt != txReadBufCnt && (
@@ -375,6 +378,7 @@ int main(void)
                 }
             }
             lastSerialDataTime = system_millis;
+            gpio_set(GPIOC, GPIO13);
         }
 
         if(txBufferCnt != txReadBufCnt){

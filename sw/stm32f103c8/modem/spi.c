@@ -64,7 +64,7 @@ void spi_setup(void) {
 uint8_t spi_transfer(uint8_t data){
   while(SPI_SR(SPI1) & SPI_SR_BSY);
   SPI_DR(SPI1) = data;
-  while(!SPI_SR(SPI1) & SPI_SR_RXNE);
+  while(!(SPI_SR(SPI1) & SPI_SR_RXNE));
   while(SPI_SR(SPI1) & SPI_SR_BSY);
   return SPI_DR(SPI1);
   //gpio_clear(GPIOA, GPIO4);
