@@ -4,6 +4,7 @@
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/iwdg.h>
 #include <string.h>
 #include <stdio.h>
 //#include "syscalls.h"
@@ -17,8 +18,8 @@
 
 #define MAX_PACKET_SIZE 64
 #define TIMEOUT 100
-#define TX_CIRCULAR_LENGTH 80
-#define RX_CIRCULAR_LENGTH 80
+#define TX_CIRCULAR_LENGTH 40
+#define RX_CIRCULAR_LENGTH 40
 //#define EEPROM_TEST 0xABCDEF00
 //#define CHANNEL_TRESHOLD -80.0
 //Special Address
@@ -88,6 +89,12 @@ void SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi)
 void SI446X_CB_RXINVALID(int16_t rssi)
 {
     invalidRxFlag = 1;
+}
+void SI446X_CB_TXTIMEOUT()
+{
+    iwdg_reset();
+    if(eeStruct.debug == 1) printf("\n\033[31mTX timeout!!!\033[0m\r\n");
+    init_modem();
 }
 void SI446X_CB_CMDTIMEOUT()
 {
@@ -178,7 +185,9 @@ void tim2_isr(void)
 }
 
 void init_modem(){
+    iwdg_reset();
     Si446x_init();
+    iwdg_reset();
     Si446x_setTxPower(eeStruct.rfpower);
     Si446x_setRSSIComp(eeStruct.rssiComp);
     Si446x_RX(eeStruct.channel);
@@ -253,6 +262,7 @@ int main(void)
     rxReadBufCnt = 0;
     txReadBufCnt = 0;
     rxOverflowed = 0;
+
     
 	clock_setup();
     systick_setup();
@@ -274,7 +284,7 @@ int main(void)
             while(uart_rx_available()){
                 if(uart_read_ch() == 'a') commandModeEnabled++;
                 else commandModeEnabled = 0;
-                if(system_millis - commandModeTimer > 2000) break;
+                if(system_millis - commandModeTimer > 100) break;
             }
             if(commandModeEnabled > 4) commandModeEnabled = 1;
             else commandModeEnabled = 0;
@@ -296,8 +306,11 @@ int main(void)
     so wrorng overflowed signal may ocur. */
     rxOverflowed = 0; 
 
+    iwdg_set_period_ms(120);
+    iwdg_start();
     while(1)
     {
+        iwdg_reset();
 
         /*if( timer_cnt > 128 && p1){
             printf("turn 1\r\n");
@@ -335,6 +348,7 @@ int main(void)
                   (eeStruct.id % 2 == 0 && timer_cnt < 128) ||
                   (eeStruct.id % 2 == 1 && timer_cnt > 128) ))
                 break;*/
+            iwdg_reset();
             if(rxbuffer[rxReadBufCnt][0] != 0)
                 _write(1, (char*)&rxbuffer[rxReadBufCnt][2], rxbuffer[rxReadBufCnt][0]-2);
             rxReadBufCnt++;
@@ -351,6 +365,7 @@ int main(void)
                     break;*/
                 txbuffer[txBufferCnt][txCounter++] = uart_read_ch();
                 if(txCounter >= MAX_PACKET_SIZE) {
+                    iwdg_reset();
                     txCounter = 2;
                     if((txBufferCnt + 1) % TX_CIRCULAR_LENGTH == txReadBufCnt ){
                         if(eeStruct.debug == 1) printf("\n\033[31mTX overflowed!!!\033[0m\r\n");
@@ -372,6 +387,7 @@ int main(void)
             while(txBufferCnt != txReadBufCnt && (
                   (eeStruct.id % 2 == 0 && timer_cnt < 128) ||
                   (eeStruct.id % 2 == 1 && timer_cnt > 128) )){
+                iwdg_reset();
                 txbuffer[txReadBufCnt][0] = MAX_PACKET_SIZE;
                 if( rf_tx() ){
                     txReadBufCnt++;

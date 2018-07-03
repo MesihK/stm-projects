@@ -1,6 +1,6 @@
 #include "uart.h"
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 2048
 
 struct ring tx_ring;
 uint8_t tx_ring_buffer[BUFFER_SIZE];

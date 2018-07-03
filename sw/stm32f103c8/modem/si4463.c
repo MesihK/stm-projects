@@ -23,6 +23,8 @@
 
 static const uint8_t config[] = RADIO_CONFIGURATION_DATA_ARRAY;
 static volatile uint8_t enabledInterrupts[3];
+volatile uint8_t isTransmitting = 0;
+extern EEPROM_STRUCT eeStruct;
 
 #define rssi_dBm(val)			((val / 2) - 134)
 
@@ -57,6 +59,7 @@ static inline uint8_t interrupt_on(void){
 static void __empty_callback0(void){}
 static void __empty_callback1(int16_t param1){(void)(param1);}
 void __attribute__((weak, alias ("__empty_callback0"))) SI446X_CB_IRQ(void);
+void __attribute__((weak, alias ("__empty_callback0"))) SI446X_CB_TXTIMEOUT(void);
 void __attribute__((weak, alias ("__empty_callback0"))) SI446X_CB_CMDTIMEOUT(void);
 void __attribute__((weak, alias ("__empty_callback1"))) SI446X_CB_RXBEGIN(int16_t rssi);
 void __attribute__((weak)) SI446X_CB_RXCOMPLETE(uint8_t length, int16_t rssi){(void)(length);(void)(rssi);}
@@ -99,7 +102,7 @@ static uint8_t waitForResponse(void* out, uint8_t outLen, uint8_t useTimeout)
 {
     int i=0;
 	// With F_CPU at 8MHz and SPI at 4MHz each check takes about 7us + 10us delay
-	uint32_t timeout = 40000;
+	uint32_t timeout = 10000;
 	while(!getResponse(out, outLen))
 	{
         //f=72Mhz / 72 000 0 ~ 10us delay
@@ -286,10 +289,13 @@ static void interrupt2(void* buff, uint8_t clearPH, uint8_t clearMODEM, uint8_t 
 // Reset the RF chip
 static void resetDevice(void)
 {
+    iwdg_reset();
     gpio_set(SDN_PRT, SDN_PIN);
 	msleep(50);
+    iwdg_reset();
     gpio_clear(SDN_PRT, SDN_PIN);
 	msleep(50);
+    iwdg_reset();
 }
 
 static void applyStartupConfig(void)
@@ -322,7 +328,7 @@ void Si446x_init()
 	Si446x_sleep();
 
 	enabledInterrupts[IRQ_PACKET] = (1<<SI446X_PACKET_RX_PEND) | (1<<SI446X_CRC_ERROR_PEND);
-    enabledInterrupts[IRQ_MODEM] = (1<<SI446X_INVALID_SYNC_PEND);
+    //enabledInterrupts[IRQ_MODEM] = (1<<SI446X_INVALID_SYNC_PEND);
 	//enabledInterrupts[IRQ_MODEM] = (1<<SI446X_SYNC_DETECT_PEND);
 
     exti_setup();
@@ -441,13 +447,17 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
 {
     //fixed length
 	// Stop the unused parameter warning
+    int i = 0;
+    int timeout = 1000;
 	((void)(len));
-    if(getState() == SI446X_STATE_TX) // Already transmitting
-			return 0;
-    if(txFifoSpace() < 63) return 0;
 
 	SI446X_NO_INTERRUPT()
 	{
+        if(getState() == SI446X_STATE_TX) // Already transmitting
+                return 0;
+        if(txFifoSpace() < 64) return 0;
+        isTransmitting = 1;
+
 		setState(IDLE_STATE);
 		clearFIFO();
 		interrupt2(NULL, 0, 0, 0xFF);
@@ -474,8 +484,20 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
 			0
 		};
 		doAPI(data, sizeof(data), NULL, 0);
+        while(getState() != SI446X_STATE_TX && timeout > 0) // wait for trasnmission to begin
+        {
+            timeout--; 
+            iwdg_reset();
+            if(timeout <= 0){
+                isTransmitting = 0;
+                SI446X_CB_TXTIMEOUT();
+                return 0;
+            }
+            for (i = 0; i < 120; i++)	// Wait a bit. 
+                __asm__("nop");
+        }
+        isTransmitting = 0;
 	}
-    while(getState() != SI446X_STATE_TX); // wait for trasnmission to begin
 	return 1;
 }
 
@@ -527,6 +549,7 @@ static void exti_setup(void)
 
 void exti3_isr(void)
 {
+    if(isTransmitting) return;
 	exti_reset_request(EXTI3);
     //gpio_toggle(GPIOC, GPIO13);
     //SI446X_CB_IRQ();

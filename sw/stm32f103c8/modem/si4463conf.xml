@@ -10,7 +10,7 @@
           <Value>433</Value>
         </DataItem>
         <DataItem Type="System.Windows.Forms.NumericUpDown" Name="nudChannelSpacing">
-          <Value>170</Value>
+          <Value>350</Value>
         </DataItem>
       </grbFequencyControl>
       <grbCrystalControl Type="System.Windows.Forms.GroupBox">
@@ -59,10 +59,10 @@
           <SelectedIndex>1</SelectedIndex>
         </DataItem>
         <DataItem Type="System.Windows.Forms.NumericUpDown" Name="nudDataRate">
-          <Value>80</Value>
+          <Value>150</Value>
         </DataItem>
         <DataItem Type="System.Windows.Forms.NumericUpDown" Name="nudDeviation">
-          <Value>40</Value>
+          <Value>75</Value>
         </DataItem>
         <DataItem Type="System.Windows.Forms.CheckBox" Name="chbManualRxBandwidth">
           <Checked>False</Checked>
@@ -409,7 +409,7 @@
         </DataItem>
         <DataItem Type="NewWDS.Applications.App_Common.ByteStatusControl.ByteStatus" Name="bstModemInterruptStatus">
           <Enabled>True</Enabled>
-          <Value>32</Value>
+          <Value>0</Value>
         </DataItem>
       </grbModemInterrupt>
       <grbPacketHandlerInterrupt Type="System.Windows.Forms.GroupBox">

@@ -5,11 +5,13 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/exti.h>
+#include <libopencm3/stm32/iwdg.h>
 #include <stdint.h>
 #include <string.h>
 #include "Si446x_defs.h"
 #include "spi.h"
 #include "systick.h"
+#include "rl.h"
 
 #define SI446X_MAX_PACKET_LEN	128 ///< Maximum packet length
 
