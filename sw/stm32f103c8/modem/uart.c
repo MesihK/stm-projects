@@ -1,6 +1,6 @@
 #include "uart.h"
 
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 2560
 
 struct ring tx_ring;
 uint8_t tx_ring_buffer[BUFFER_SIZE];
@@ -57,6 +57,8 @@ void usart_setup(int baudrate)
 	ring_init(&rx_ring, rx_ring_buffer, BUFFER_SIZE);
 
 	nvic_enable_irq(NVIC_USART1_IRQ);
+    //uart inturrpt should be top priorty else we miss character
+    nvic_set_priority(NVIC_USART1_IRQ, 0);
 
 	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ,
 		      GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
@@ -82,18 +84,11 @@ void usart_setup(int baudrate)
 void usart1_isr(void)
 {
     //gpio_clear(GPIOC, GPIO13);
-	if (((USART_CR1(USART1) & USART_CR1_RXNEIE) != 0) &&
-	    ((USART_SR(USART1) & USART_SR_RXNE) != 0)) {
-
-		ring_write_ch(&rx_ring, usart_recv(USART1));
-	}
-
 	if (((USART_CR1(USART1) & USART_CR1_TXEIE) != 0) &&
 	    ((USART_SR(USART1) & USART_SR_TXE) != 0)) {
 
 		int32_t data;
 
-        USART_SR(USART1) &= ~USART_SR_TXE;
 		data = ring_read_ch(&tx_ring, NULL);
 
 		if (data == -1) {
@@ -102,5 +97,11 @@ void usart1_isr(void)
 			usart_send(USART1, data);
 		}
 	}
+	if (((USART_CR1(USART1) & USART_CR1_RXNEIE) != 0) &&
+	    ((USART_SR(USART1) & USART_SR_RXNE) != 0)) {
+
+		ring_write_ch(&rx_ring, usart_recv(USART1));
+	}
+
 }
 

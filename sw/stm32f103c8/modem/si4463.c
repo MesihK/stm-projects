@@ -496,8 +496,8 @@ uint8_t Si446x_TX(void* packet, uint8_t len, uint8_t channel, si446x_state_t onT
 	SI446X_NO_INTERRUPT()
 	{
         //if(getState() == SI446X_STATE_TX) // Already transmitting
-                //return 0;
-        //if(txFifoSpace() < 64) return 0;
+        //        return 0;
+        //if(txFifoSpace() < 63) return 0;
         isTransmitting = 1;
 
 		setState(IDLE_STATE);
@@ -580,6 +580,7 @@ static void exti_setup(void)
 
 	/* Enable EXTI3 interrupt. */
 	nvic_enable_irq(NVIC_EXTI3_IRQ);
+    nvic_set_priority(NVIC_EXTI3_IRQ, 16);
 
 	gpio_set_mode(IRQ_PRT, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN, IRQ_PIN);
     gpio_set(IRQ_PRT, IRQ_PIN); //pull up

@@ -19,7 +19,7 @@
 #define MAX_PACKET_SIZE 64
 #define TIMEOUT 100
 #define TX_CIRCULAR_LENGTH 90
-#define RX_CIRCULAR_LENGTH 90
+#define RX_CIRCULAR_LENGTH 30
 //#define EEPROM_TEST 0xABCDEF00
 //#define CHANNEL_TRESHOLD -80.0
 //Special Address
@@ -351,6 +351,7 @@ int main(void)
                 break;*/
             iwdg_reset();
             if(uart_tx_available() < MAX_PACKET_SIZE) break;
+            //char c = '+'; _write(1, &c, 1); //debug packet boundary
             if(rxbuffer[rxReadBufCnt][0] > 2 && rxbuffer[rxReadBufCnt][0] <= MAX_PACKET_SIZE)
                 _write(1, (char*)&rxbuffer[rxReadBufCnt][2], rxbuffer[rxReadBufCnt][0]-2);
             rxReadBufCnt++;
