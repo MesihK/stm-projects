@@ -10,7 +10,7 @@
           <Value>433</Value>
         </DataItem>
         <DataItem Type="System.Windows.Forms.NumericUpDown" Name="nudChannelSpacing">
-          <Value>400</Value>
+          <Value>500</Value>
         </DataItem>
       </grbFequencyControl>
       <grbCrystalControl Type="System.Windows.Forms.GroupBox">
@@ -56,19 +56,28 @@
     <tbpRfParameters Type="System.Windows.Forms.TabPage">
       <grbRfParameters Type="System.Windows.Forms.GroupBox">
         <DataItem Type="System.Windows.Forms.ComboBox" Name="cbbModulationType">
-          <SelectedIndex>2</SelectedIndex>
+          <SelectedIndex>4</SelectedIndex>
         </DataItem>
         <DataItem Type="System.Windows.Forms.NumericUpDown" Name="nudDataRate">
-          <Value>150</Value>
+          <Value>200</Value>
         </DataItem>
         <DataItem Type="System.Windows.Forms.NumericUpDown" Name="nudDeviation">
-          <Value>75</Value>
+          <Value>70</Value>
+        </DataItem>
+        <DataItem Type="System.Windows.Forms.NumericUpDown" Name="nudDeviationError">
+          <Value>0</Value>
+        </DataItem>
+        <DataItem Type="System.Windows.Forms.NumericUpDown" Name="nudDeviationErrorNegative">
+          <Value>0</Value>
         </DataItem>
         <DataItem Type="System.Windows.Forms.CheckBox" Name="chbManualRxBandwidth">
           <Checked>False</Checked>
         </DataItem>
         <DataItem Type="NewWDS.Applications.App_Common.CustomContols.NumericUpDownExtended" Name="nudBandwidth">
           <Value>150</Value>
+        </DataItem>
+        <DataItem Type="System.Windows.Forms.ComboBox" Name="cbb4GfskMap">
+          <SelectedIndex>0</SelectedIndex>
         </DataItem>
         <DataItem Type="System.Windows.Forms.ComboBox" Name="cbbIfMode">
           <SelectedIndex>0</SelectedIndex>
@@ -223,6 +232,9 @@
             <DataItem Type="System.Windows.Forms.CheckBox" Name="chbRxChainOnAfterRx">
               <Checked>True</Checked>
             </DataItem>
+            <DataItem Type="System.Windows.Forms.CheckBox" Name="chbModem4Gfsk">
+              <Checked>True</Checked>
+            </DataItem>
           </tbpGeneralFieldConfig>
         </tabGeneralConfig>
         <tabFieldConfig Type="NewWDS.CustomTablessTabControl">
@@ -275,6 +287,9 @@
               <DataItem Type="System.Windows.Forms.CheckBox" Name="chbSyncWordManchesterEncoded">
                 <Checked>False</Checked>
               </DataItem>
+              <DataItem Type="System.Windows.Forms.CheckBox" Name="chbSyncWord4GfskModulated">
+                <Checked>True</Checked>
+              </DataItem>
               <DataItem Type="System.Windows.Forms.CheckBox" Name="chbSkipSyncWordTimeout">
                 <Checked>False</Checked>
               </DataItem>
@@ -300,6 +315,9 @@
               <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField5ManchesterEncoding">
                 <Checked>False</Checked>
               </DataItem>
+              <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField54GfskModulated">
+                <Checked>True</Checked>
+              </DataItem>
             </grbField5>
           </tbpField5>
           <tbpField4 Type="System.Windows.Forms.TabPage">
@@ -321,6 +339,9 @@
               </DataItem>
               <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField4ManchesterEncoding">
                 <Checked>False</Checked>
+              </DataItem>
+              <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField44GfskModulated">
+                <Checked>True</Checked>
               </DataItem>
             </grbField4>
           </tbpField4>
@@ -344,6 +365,9 @@
               <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField3ManchesterEncoding">
                 <Checked>False</Checked>
               </DataItem>
+              <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField34GfskModulated">
+                <Checked>True</Checked>
+              </DataItem>
             </grbField3>
           </tbpField3>
           <tbpField2 Type="System.Windows.Forms.TabPage">
@@ -366,6 +390,9 @@
               <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField2ManchesterEncoding">
                 <Checked>False</Checked>
               </DataItem>
+              <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField24GfskModulated">
+                <Checked>True</Checked>
+              </DataItem>
             </grbField2>
           </tbpField2>
           <tbpField1 Type="System.Windows.Forms.TabPage">
@@ -387,6 +414,9 @@
               </DataItem>
               <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField1ManchesterEncoding">
                 <Checked>False</Checked>
+              </DataItem>
+              <DataItem Type="System.Windows.Forms.CheckBox" Name="chbField14GfskModulated">
+                <Checked>True</Checked>
               </DataItem>
             </grbField1>
           </tbpField1>
@@ -443,7 +473,7 @@
           <Checked>False</Checked>
         </DataItem>
         <DataItem Type="System.Windows.Forms.ComboBox" Name="cbbGpio0">
-          <SelectedIndex>HOP_TABLE_WRAP</SelectedIndex>
+          <SelectedIndex>EN_PA</SelectedIndex>
         </DataItem>
         <DataItem Type="System.Windows.Forms.CheckBox" Name="chbGpio1Pullup">
           <Checked>False</Checked>
