@@ -3,7 +3,9 @@ OPENCM3_DIR     = ../../../lib/libopencm3
 BINARY          = usb
 
 SRCS            += usb.c
+SRCS            += ../../../lib/microrl/src/microrl.c
 INCLUDES        += -I.
+INCLUDES        += -I../../../lib/microrl/src/
 
 STFLASH			= $(shell which st-flash)
 

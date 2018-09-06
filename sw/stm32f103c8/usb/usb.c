@@ -20,20 +20,25 @@
 #include <stdlib.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/cm3/scb.h>
+#include <libopencm3/cm3/nvic.h>
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/cdc.h>
+
+usbd_device *usbd_dev;
+
 
 static const struct usb_device_descriptor dev = {
 	.bLength = USB_DT_DEVICE_SIZE,
 	.bDescriptorType = USB_DT_DEVICE,
 	.bcdUSB = 0x0200,
-	.bDeviceClass = USB_CLASS_CDC,
-	.bDeviceSubClass = 0,
-	.bDeviceProtocol = 0,
+	.bDeviceClass = 0xEF,		/* Miscellaneous Device */
+	.bDeviceSubClass = 2,		/* Common Class */
+	.bDeviceProtocol = 1,		/* Interface Association */
 	.bMaxPacketSize0 = 64,
-	.idVendor = 0x0483,
-	.idProduct = 0x5740,
-	.bcdDevice = 0x0200,
+	.idVendor = 0x1D50,
+	.idProduct = 0x6018,
+	.bcdDevice = 0x0100,
 	.iManufacturer = 1,
 	.iProduct = 2,
 	.iSerialNumber = 3,
@@ -48,7 +53,7 @@ static const struct usb_device_descriptor dev = {
 static const struct usb_endpoint_descriptor comm_endp[] = {{
 	.bLength = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType = USB_DT_ENDPOINT,
-	.bEndpointAddress = 0x83,
+	.bEndpointAddress = 0x86,
 	.bmAttributes = USB_ENDPOINT_ATTR_INTERRUPT,
 	.wMaxPacketSize = 16,
 	.bInterval = 255,
@@ -57,14 +62,14 @@ static const struct usb_endpoint_descriptor comm_endp[] = {{
 static const struct usb_endpoint_descriptor data_endp[] = {{
 	.bLength = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType = USB_DT_ENDPOINT,
-	.bEndpointAddress = 0x01,
+	.bEndpointAddress = 0x05,
 	.bmAttributes = USB_ENDPOINT_ATTR_BULK,
 	.wMaxPacketSize = 64,
 	.bInterval = 1,
 }, {
 	.bLength = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType = USB_DT_ENDPOINT,
-	.bEndpointAddress = 0x82,
+	.bEndpointAddress = 0x85,
 	.bmAttributes = USB_ENDPOINT_ATTR_BULK,
 	.wMaxPacketSize = 64,
 	.bInterval = 1,
@@ -236,11 +241,11 @@ int main(void)
 {
 	int i;
 
-	usbd_device *usbd_dev;
-
     rcc_clock_setup_in_hse_8mhz_out_72mhz();
 
 	rcc_periph_clock_enable(RCC_GPIOC);
+	rcc_periph_clock_enable(RCC_USB);
+	rcc_periph_clock_enable(RCC_AFIO);
 
 	gpio_set(GPIOC, GPIO13);
 	gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ,
@@ -248,11 +253,12 @@ int main(void)
 
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev, &config, usb_strings, 3, usbd_control_buffer, sizeof(usbd_control_buffer));
 	usbd_register_set_config_callback(usbd_dev, cdcacm_set_config);
+	nvic_set_priority(NVIC_USB_LP_CAN_RX0_IRQ, (2 << 4));
+	nvic_enable_irq(NVIC_USB_LP_CAN_RX0_IRQ);
+}
 
-	for (i = 0; i < 0x800000; i++)
-		__asm__("nop");
-	gpio_clear(GPIOC, GPIO13);
-
-	while (1)
-		usbd_poll(usbd_dev);
+void usb_lp_can_rx0_isr(void)
+{
+	gpio_toggle(GPIOC, GPIO13);
+	usbd_poll(usbd_dev);
 }
