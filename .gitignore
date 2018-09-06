@@ -1,0 +1,7 @@
+*.bin
+*.elf
+*.d
+*.pdf
+*.ld
+*.o
+*.map

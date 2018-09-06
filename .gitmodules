@@ -13,3 +13,6 @@
 [submodule "lib/Si446x"]
 	path = lib/Si446x
 	url = https://github.com/zkemble/Si446x.git
+[submodule "lib/nanopb"]
+	path = lib/nanopb
+	url = https://github.com/nanopb/nanopb.git

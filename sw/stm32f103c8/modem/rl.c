@@ -67,13 +67,13 @@ int execute (int argc, const char * const * argv)
 					if (++i < argc) {
 						if( re_match("^ *[0-9]+$", argv[i]) != -1){
 							uint8_t chl = atoi(argv[i]);
-							if( chl <= 20){
+							if( chl <= 200){
 								eeStruct.channel = chl;
 								Si446x_RX(eeStruct.channel);
 								printf("Setting channel to: ");
 								printf("%d\r\n",eeStruct.channel);
 							} else {
-								printf("Channel should be between 0-20\r\n");
+								printf("Channel should be between 0-200\r\n");
 							}
 						} else {
 							printf("Channel should be a number!\r\n");
@@ -242,7 +242,7 @@ int execute (int argc, const char * const * argv)
             if (++i < argc) {
                 if( re_match("^ *[0-9]+$", argv[i]) != -1){
                     uint8_t chnl = atoi(argv[i]);
-                    if( chnl <= 20){
+                    if( chnl <= 200){
                         double min = 100.0, max = -200.0;
                         Si446x_RX(chnl);
                         while(uart_rx_available() == 0){
@@ -270,7 +270,7 @@ int execute (int argc, const char * const * argv)
                         printf("dBm\033[0m\r\n");
                         Si446x_RX(eeStruct.channel);
                     } else {
-                        printf("Channel should be in 0 - 20!\r\n");
+                        printf("Channel should be in 0 - 200!\r\n");
                     }
                 } else {
                     printf("Channel should be a number!\r\n");

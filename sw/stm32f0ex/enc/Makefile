@@ -1,11 +1,9 @@
 DEVICE          = stm32f051r8t6
 OPENCM3_DIR     = ../../../lib/libopencm3
-BINARY          = rl
+BINARY          = enc
 
-SRCS            += rl.c
-SRCS            += ../../../lib/microrl/src/microrl.c
+SRCS            += enc.c
 INCLUDES        += -I.
-INCLUDES        += -I../../../lib/microrl/src/
 
 STFLASH			= $(shell which st-flash)
 
