@@ -184,10 +184,10 @@ int main(void)
 	adc_setup();
     dac_setup();
 
-	microrl_init (prl, print);
-	microrl_set_execute_callback (prl, execute);
-	microrl_set_complete_callback (prl, complet);
-	microrl_set_sigint_callback (prl, sigint);
+	//microrl_init (prl, print);
+	//microrl_set_execute_callback (prl, execute);
+	//microrl_set_complete_callback (prl, complet);
+	//microrl_set_sigint_callback (prl, sigint);
 
     while(1)
     {
@@ -198,8 +198,8 @@ int main(void)
 		temp = adc_read_regular(ADC1);
         set_dac(temp);
 
-        printf("adc=%d\r\n",temp);
-        msleep(500);
+        //printf("adc=%d\r\n",temp);
+        //msleep(500);
     }
 }
 
